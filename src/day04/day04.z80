@@ -1,0 +1,4765 @@
+; program day04.pas
+CPM:            equ     1               ; Target is CP/M .com file
+                include "/Users/joerg/Projects/pl0/pl0.z80"
+                jp      main
+; [0] (* Built-ins that do not have to be defined in the compiler itself. *)
+; [1] 
+; [2] (* -------------------------------------------------------------------------- *)
+; [3] (* --- String support ------------------------------------------------------- *)
+; [4] (* -------------------------------------------------------------------------- *)
+; [5] 
+; [6] (* Built-in: procedure Val(S: String; var Scalar; var E: Integer); *)
+; [7] (* Built-in: procedure Str(N: Scalar; var S: String);              *)
+; [8] 
+; [9] procedure Delete(var S: String; Start, Count: Integer);     external '__delete';
+; [10] procedure Insert(S: String; var T: String; Start: Integer); external '__insert';
+; [11] 
+; [12] (* Built-in: function Concat(S: String, ...): String;              *)
+; [13] 
+; [14] function Copy(S: String; Start, Count: Integer): String;    external '__copy';
+; [15] function Length(S: String): Integer;                        external '__length';
+; [16] function Pos(S, T: String): Integer;                        external '__pos';
+; [17] 
+; [18] (* -------------------------------------------------------------------------- *)
+; [19] (* --- Set support ---------------------------------------------------------- *)
+; [20] (* -------------------------------------------------------------------------- *)
+; [21] 
+; [22] (* Built-in: procedure Include(var S: Set; E: Element);     *)
+; [23] (* Built-in: procedure Exclude(var S: Set; E: Element);     *)
+; [24] 
+; [25] (* -------------------------------------------------------------------------- *)
+; [26] (* --- File support --------------------------------------------------------- *)
+; [27] (* -------------------------------------------------------------------------- *)
+; [28] 
+; [29] (* TBD *)
+; [30] 
+; [31] (* -------------------------------------------------------------------------- *)
+; [32] (* --- Heap management ------------------------------------------------------ *)
+; [33] (* -------------------------------------------------------------------------- *)
+; [34] 
+; [35] type
+; [36]   PBlock = ^TBlock;
+; [37]   TBlock = record
+; [38]     Next: PBlock;
+; [39]     Size: Integer;
+; [40]   end;
+; [41] 
+; [42] var
+; [43]   HeapPtr: PBlock absolute '__heapptr';
+; [44] 
+; [45] (* Built-in: procedure New(var P: Pointer);       *)
+; [46] (* Built-in: procedure Dispose(P: Pointer);       *)
+; [47] 
+; [48] procedure FreeMem(P: Pointer; Size: Integer);     register; external '__freemem';
+; [49] procedure GetMem(var P: Pointer; Size: Integer);  register; external '__getmem';
+; [50] 
+; [51] function MemAvail: Integer;
+; [52] var
+; [53]   P: PBlock;
+; [54]   I: Integer;
+; [55] begin
+; var MemAvail(+6), P(-2), I(-4)
+func7:          push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                push    hl
+; [56]   P := HeapPtr;
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      hl,(__heapptr)  ; Get global HeapPtr
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [57]   I := 0;
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [58]   while P <> nil do
+while9:
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_neq
+                ld      h,0
+                ld      l,a
+; [59]   begin
+                bit     0,l
+                jp      z,false10
+; [60]     I := I + P^.Size;
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl)
+                inc     hl
+                ld      d,(hl)
+                ex      de,hl
+                inc     hl \ inc hl     ; Literal 2
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [61]     P := P^.Next;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl)
+                inc     hl
+                ld      d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [62]   end;
+                jp      while9
+false10:
+; [63] 
+; [64]   MemAvail := I;
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [65] end;
+exit8:          ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [66] 
+; [67] function MaxAvail: Integer;
+; [68] var
+; [69]   P: PBlock;
+; [70]   I: Integer;
+; [71] begin
+; var MaxAvail(+6), P(-2), I(-4)
+func11:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                push    hl
+; [72]   P := HeapPtr;
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      hl,(__heapptr)  ; Get global HeapPtr
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [73]   I := 0;
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [74]   while P <> nil do
+while13:
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_neq
+                ld      h,0
+                ld      l,a
+; [75]   begin
+                bit     0,l
+                jp      z,false14
+; [76]     if P^.Size > I then I := P^.Size;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl)
+                inc     hl
+                ld      d,(hl)
+                ex      de,hl
+                inc     hl \ inc hl     ; Literal 2
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,false15
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl)
+                inc     hl
+                ld      d,(hl)
+                ex      de,hl
+                inc     hl \ inc hl     ; Literal 2
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+false15:
+; [77]     P := P^.Next;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl)
+                inc     hl
+                ld      d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [78]   end;
+                jp      while13
+false14:
+; [79] 
+; [80]   MaxAvail := I;
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [81] end;
+exit12:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [82] 
+; [83] procedure InitHeap(Bytes: Integer);
+; [84] var
+; [85]   P: Pointer;
+; [86] begin
+; var Bytes(+6), P(-2)
+proc16:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [87]   HeapPtr := nil;
+                push    hl
+                ld      hl,__heapptr    ; Get global HeapPtr
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [88]   P := Ptr(32768); (* GetHeapStart; *)
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      de,32768
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [89]   FreeMem(P, Bytes);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __freemem
+; [90] end;
+exit17:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [91] 
+; [92] (* -------------------------------------------------------------------------- *)
+; [93] (* --- Standard procedures -------------------------------------------------- *)
+; [94] (* -------------------------------------------------------------------------- *)
+; [95] 
+; [96] (* Built-in: procedure Break;                   *)
+; [97] (* Built-in: procedure Continue;                *)
+; [98] (* Built-in: procedure Exit;                    *)
+; [99] 
+; [100] procedure ClrScr; register;                 external '__clrscr';
+; [101] procedure GotoXY(X, Y: Integer); register;  external '__gotoxy';
+; [102] procedure CursorOn; register;               external '__cursor_on';
+; [103] procedure CursorOff; register;              external '__cursor_off';
+; [104] 
+; [105] procedure ConOut(C: Char); register;        external '__conout';
+; [106] 
+; [107] procedure ClrEol; register; inline
+proc23:
+; [108] (
+; [109]   $2e /                       (* ld   l,27      *)
+                db      46
+; [110]   $cd / ConOut /              (* call ConOut    *)
+                db      205
+                dw      __conout
+; [111]   $3e / 'K' /                 (* ld   l,'K'     *)
+                db      62,75
+; [112]   $cd / ConOut /              (* call ConOut    *)
+                db      205
+                dw      __conout
+; [113]   $c9                         (* ret            *)
+; [114] );
+                db      201
+                ret
+; [115] 
+; [116] procedure ClrEos; register; inline
+proc24:
+; [117] (
+; [118]   $2e /                       (* ld   l,27      *)
+                db      46
+; [119]   $cd / ConOut /              (* call ConOut    *)
+                db      205
+                dw      __conout
+; [120]   $3e / 'J' /                 (* ld   l,'J'     *)
+                db      62,74
+; [121]   $cd / ConOut /              (* call ConOut    *)
+                db      205
+                dw      __conout
+; [122]   $c9                         (* ret            *)
+; [123] );
+                db      201
+                ret
+; [124] 
+; [125] procedure InsLine; register; inline
+proc25:
+; [126] (
+; [127]   $2e /                       (* ld   l,27      *)
+                db      46
+; [128]   $cd / ConOut /              (* call ConOut    *)
+                db      205
+                dw      __conout
+; [129]   $3e / 'L' /                 (* ld   l,'L'     *)
+                db      62,76
+; [130]   $cd / ConOut /              (* call ConOut    *)
+                db      205
+                dw      __conout
+; [131]   $c9                         (* ret            *)
+; [132] );
+                db      201
+                ret
+; [133] 
+; [134] procedure DelLine; register; inline
+proc26:
+; [135] (
+; [136]   $2e /                       (* ld   l,27      *)
+                db      46
+; [137]   $cd / ConOut /              (* call ConOut    *)
+                db      205
+                dw      __conout
+; [138]   $3e / 'M' /                 (* ld   l,'M'     *)
+                db      62,77
+; [139]   $cd / ConOut /              (* call ConOut    *)
+                db      205
+                dw      __conout
+; [140]   $c9                         (* ret            *)
+; [141] );
+                db      201
+                ret
+; [142] 
+; [143] procedure TextColor(I: Integer); register;      external '__textfg';
+; [144] procedure TextBackground(I: Integer); register; external '__textbg';
+; [145] 
+; [146] (* -------------------------------------------------------------------------- *)
+; [147] (* --- Arithmetic functions ------------------------------------------------- *)
+; [148] (* -------------------------------------------------------------------------- *)
+; [149] 
+; [150] {$A math48.z80}
+; [151] 
+; [152] const
+; [153]   MaxInt = 32767;
+; [154]   MinInt = -32768;
+; [155] 
+; [156] (* Built-in: function Abs(I: Integer): Integer  *)
+; [157] (* Built-in: function Abs(R: Real): Real        *)
+; [158] 
+; [159] function ArcTan (R: Real): Real; register; external 'ATN';
+; [160] function Cos    (R: Real): Real; register;    external 'COS';
+; [161] function Exp    (R: Real): Real; register;    external 'EXP';
+; [162] function Frac   (R: Real): Real; register;   external 'FRAC';
+; [163] function Int    (R: Real): Real; register;    external 'INT';
+; [164] function Ln     (R: Real): Real; register;     external 'LN';
+; [165] function Log    (R: Real): Real; register;    external 'LOG';
+; [166] function Sin    (R: Real): Real; register;    external 'SIN';
+; [167] function Sqr    (R: Real): Real; register;    external '__fltpwr2';
+; [168] function Sqrt   (R: Real): Real; register;   external 'SQR';
+; [169] function Tan    (R: Real): Real; register;    external 'TAN';
+; [170] 
+; [171] function Pi: Real; register;              external 'ACPI';
+; [172] 
+; [173] function MaxReal: Real; register; inline
+func41:
+; [174] (
+; [175]   $01 / $7FFF /
+                db      1
+                dw      32767
+; [176]   $11 / $FFFF /
+                db      17
+                dw      65535
+; [177]   $21 / $FFFF /
+                db      33
+                dw      65535
+; [178]   $c9
+; [179] );
+                db      201
+                ret
+; [180] 
+; [181] function MinReal: Real; register; inline
+func42:
+; [182] (
+; [183]   $01 / $FFFF /
+                db      1
+                dw      65535
+; [184]   $11 / $FFFF /
+                db      17
+                dw      65535
+; [185]   $21 / $FFFF /
+                db      33
+                dw      65535
+; [186]   $c9
+; [187] );
+                db      201
+                ret
+; [188] 
+; [189] (* -------------------------------------------------------------------------- *)
+; [190] (* --- Scalar functions ----------------------------------------------------- *)
+; [191] (* -------------------------------------------------------------------------- *)
+; [192] 
+; [193] (* Built-in: function Pred(Ordinal): Ordinal;     *)
+; [194] (* Built-in: function Succ(Ordinal): Ordinal;     *)
+; [195] (* Built-in: function Odd(Ordinal): Boolean;      *)
+; [196] (* Built-in: function Even(Ordinal): Boolean;     *)
+; [197] 
+; [198] (* -------------------------------------------------------------------------- *)
+; [199] (* --- Transfer functions --------------------------------------------------- *)
+; [200] (* -------------------------------------------------------------------------- *)
+; [201] 
+; [202] (* Built-in: function Ord(Ordinal): Integer;      *)
+; [203] 
+; [204] function Round(R: Real): Integer; register; external '__fltrnd';
+; [205] function Trunc(R: Real): Integer; register; external 'FIX';
+; [206] 
+; [207] function Chr(B: Byte): Char; register; inline
+func45:
+; [208] (
+; [209]   $c9         (* ret          *)
+; [210] );
+                db      201
+                ret
+; [211] 
+; [212] (* -------------------------------------------------------------------------- *)
+; [213] (* --- Miscellaneous standard functions ------------------------------------- *)
+; [214] (* -------------------------------------------------------------------------- *)
+; [215] 
+; [216] (* Built-in: function KeyPressed: Boolean;        *)
+; [217] (* Built-in: function SizeOf(XYZ): Integer;       *)
+; [218] (* Built-in: function Addr(XYZ): Integer;         *)
+; [219] (* Built-in: function Ptr(I: Integer): Pointer;   *)
+; [220] 
+; [221] function Hi(I: Integer): Byte; register; inline
+func46:
+; [222] (
+; [223]   $6c /       (* ld   l,h     *)
+                db      108
+; [224]   $26 / $00 / (* ld   h,0     *)
+                db      38,0
+; [225]   $c9         (* ret          *)
+; [226] );
+                db      201
+                ret
+; [227] 
+; [228] function Lo(I: Integer): Byte; register; inline
+func47:
+; [229] (
+; [230]   $26 / $00 / (* ld   h,0     *)
+                db      38,0
+; [231]   $c9         (* ret          *)
+; [232] );
+                db      201
+                ret
+; [233] 
+; [234] function Swap(I: Integer): Integer; register; inline
+func48:
+; [235] (
+; [236]   $7c /       (* ld   a,h     *)
+                db      124
+; [237]   $65 /       (* ld   h,l     *)
+                db      101
+; [238]   $6f /       (* ld   l,a     *)
+                db      111
+; [239]   $c9         (* ret          *)
+; [240] );
+                db      201
+                ret
+; [241] 
+; [242] function UpCase(C: Char): Char; register; inline
+func49:
+; [243] (
+; [244]   $7d /       (* ld   a,l     *)
+                db      125
+; [245]   $fe / $61 / (* cp   'a'     *)
+                db      254,97
+; [246]   $d8 /       (* ret  c       *)
+                db      216
+; [247]   $fe / $7b / (* cp   'z' + 1 *)
+                db      254,123
+; [248]   $d0 /       (* ret  nc      *)
+                db      208
+; [249]   $cb / $ad / (* res  4,l     *)
+                db      203,173
+; [250]   $c9         (* ret          *)
+; [251] );
+                db      201
+                ret
+; [252] 
+; [253] function LoCase(C: Char): Char; register; inline
+func50:
+; [254] (
+; [255]   $7d /       (* ld   a,l     *)
+                db      125
+; [256]   $fe / $41 / (* cp   'A'     *)
+                db      254,65
+; [257]   $d8 /       (* ret  c       *)
+                db      216
+; [258]   $fe / $5b / (* cp   'Z' + 1 *)
+                db      254,91
+; [259]   $d0 /       (* ret  nc      *)
+                db      208
+; [260]   $cb / $ed / (* set  4,l     *)
+                db      203,237
+; [261]   $c9         (* ret          *)
+; [262] );
+                db      201
+                ret
+; [263] 
+; [264] var
+; [265]   CmdLine: String absolute $80;
+; [266] 
+; [267] function ParamCount: Byte;
+; [268] var
+; [269]   C, D: Boolean;
+; [270]   I, J: Byte;
+; [271] begin
+; var ParamCount(+6), C(-2), D(-4), I(-6), J(-8)
+func51:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                push    hl
+                push    hl
+                push    hl
+; [272]   C := True;
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      de,1
+                ld      (hl),e
+; [273]   J := 0;
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [274] 
+; [275]   for I := 1 to Length(CmdLine) do
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      de,1
+                ld      (hl),e
+                push    hl
+                ld      hl,128          ; Get global CmdLine
+                call    __loadstr
+                call    __length
+; Post call cleanup 256 bytes
+                call    __rmstr
+                pop     de              ; Dup and pre-check limit
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak54
+forloop53:
+; [276]   begin
+; [277]     D := CmdLine[I] > ' ';
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                push    hl
+                ld      hl,128          ; Get global CmdLine
+                push    hl
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                push    de
+                ld      hl,32           ; Literal 32
+                pop     de
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      (hl),e
+; [278]     if not C and D then Inc(J);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      a,1
+                xor     l
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      a,l
+                and     e
+                ld      l,a
+                bit     0,l
+                jp      z,false56
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                inc     (hl)
+false56:
+; [279]     C := D;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      (hl),e
+; [280]   end;
+fornext55:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak54
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                inc     (hl)
+                jp      forloop53
+forbreak54:     pop     de              ; Cleanup limit
+; [281] 
+; [282]   ParamCount := J;
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      (hl),e
+; [283] end;
+exit52:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [284] 
+; [285] function ParamStr(I: Byte): String;
+; [286] var
+; [287]   C, D: Boolean;
+; [288]   J, K: Byte;
+; [289] begin
+; var ParamStr(+8), I(+6), C(-2), D(-4), J(-6), K(-8)
+func57:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                push    hl
+                push    hl
+                push    hl
+; [290]   C := True;
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      de,1
+                ld      (hl),e
+; [291]   K := 1;
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      de,1
+                ld      (hl),e
+; [292] 
+; [293]   for J := 1 to Length(CmdLine) do
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      de,1
+                ld      (hl),e
+                push    hl
+                ld      hl,128          ; Get global CmdLine
+                call    __loadstr
+                call    __length
+; Post call cleanup 256 bytes
+                call    __rmstr
+                pop     de              ; Dup and pre-check limit
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak60
+forloop59:
+; [294]   begin
+; [295]     D := CmdLine[J] > ' ';
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                push    hl
+                ld      hl,128          ; Get global CmdLine
+                push    hl
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                push    de
+                ld      hl,32           ; Literal 32
+                pop     de
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      (hl),e
+; [296] 
+; [297]     if not C and D then
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      a,1
+                xor     l
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      a,l
+                and     e
+                ld      l,a
+; [298]       K := J
+                bit     0,l
+                jp      z,false62
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+; [299]     else if C and not D then
+                push    hl
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      (hl),e
+                jp      endif63
+false62:
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      a,1
+                xor     l
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                and     e
+                ld      l,a
+; [300]     begin
+                bit     0,l
+                jp      z,false64
+; [301]       if I = 0 then
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_eq
+                ld      h,0
+                ld      l,a
+; [302]       begin
+                bit     0,l
+                jp      z,false65
+; [303]         Dec(J);
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                dec     (hl)
+; [304]         Break;
+                jp      forbreak60      ; Break
+; [305]       end;
+false65:
+; [306] 
+; [307]       Dec(I);
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                dec     (hl)
+; [308]     end;
+false64:
+endif63:
+; [309] 
+; [310]     C := D;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      (hl),e
+; [311]   end;
+fornext61:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak60
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                inc     (hl)
+                jp      forloop59
+forbreak60:     pop     de              ; Cleanup limit
+; [312] 
+; [313]   if I = 0 then
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_eq
+                ld      h,0
+                ld      l,a
+; [314]     ParamStr := Copy(CmdLine, K, J - K + 1)
+                bit     0,l
+                jp      z,false66
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                push    hl
+                call    __mkstr
+                ld      hl,128          ; Get global CmdLine
+                call    __loadstr
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                xor     a
+                sbc     hl,de
+                inc     hl
+; [315]   else
+                push    hl
+                call    __copy
+; Post call cleanup 260 bytes
+                ld      hl,260          ; Clear
+                add     hl,sp
+                ld      sp,hl
+                ld      a,255
+                call    __storestr
+                jp      endif67
+false66:
+; [316]     ParamStr := '';
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                push    hl
+                ld      hl,string68
+                pop     de
+                ld      a,255
+                call    __movestr
+endif67:
+; [317] end;
+exit58:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [318] 
+; [319] var
+; [320]   RandSeed1: Integer absolute 'seed1';
+; [321]   RandSeed2: Integer absolute 'seed2';
+; [322] 
+; [323] function Random(Range: Integer): Integer; register; external '__random';
+; [324] function RandomReal: Real; register;                external '__random48';
+; [325] 
+; [326] procedure CheckBreak; register; external '__checkbreak';
+; [327] 
+; [328] (* Built-in: procedure FillChar(var Dest; Length: Integer; Data); *)
+; [329] 
+; [330] procedure Move(var Source, Dest; Count: Integer); register; external '__move';
+; [331] 
+; [332] (* -------------------------------------------------------------------------- *)
+; [333] (* --- Assertion support ---------------------------------------------------- *)
+; [334] (* -------------------------------------------------------------------------- *)
+; [335] 
+; [336] (* Built-in: procedure Assert(B: Boolean); *)
+; [337] 
+; [338] var
+; [339]   AssertPassed: Integer absolute '__assertpassed';
+; [340]   AssertFailed: Integer absolute '__assertfailed';
+; [0] program Day04;
+; [1] 
+; [2] {$I /Users/joerg/Projects/pl0/lib/files.pas}
+; [0] type
+; [1]   FileControlBlock = record
+; [2]     DR: Byte;
+; [3]     FN: array[0..7] of Char;
+; [4]     TN: array[0..2] of Char;
+; [5]     EX, S1, S2, RC: Byte;
+; [6]     AL: array[0..15] of Byte;
+; [7]     CR: Byte;
+; [8]     RN: array[0..2] of Byte;
+; [9]   end;
+; [10] 
+; [11]   Text = record
+; [12]     Offset: Integer;
+; [13]     Writing: Boolean;
+; [14]     FCB: FileControlBlock;
+; [15]     DMA: array[0..127] of Char;
+; [16]   end;
+; [17] 
+; [18] procedure InitFCB(var F: FileControlBlock; S: String);
+; [19] var
+; [20]   I, L, P, Q: Integer;
+; [21] begin
+; var F(+262), S(+6), I(-2), L(-4), P(-6), Q(-8)
+proc73:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                push    hl
+                push    hl
+                push    hl
+; [22]   with F do
+                push    hl
+                ld      de,ix
+                ld      hl,262
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+; [23]   begin
+; [24]     L := Length(S);
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                push    hl
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                call    __loadstr
+                call    __length
+; Post call cleanup 256 bytes
+                call    __rmstr
+                pop     de
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [25] 
+; [26]     if (L > 1) and (S[2] = ':') then
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,1            ; Literal 1
+                pop     de
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                inc     hl \ inc hl
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,58           ; Literal 58
+                call    __int16_eq
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                and     e
+                ld      l,a
+; [27]     begin
+                bit     0,l
+                jp      z,false75
+; [28]       DR := Ord(UpCase(S[1])) - 64;
+                ld      de,ix
+                ld      hl,-10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                inc     hl
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                call    func49
+                ld      de,64
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e
+; [29]       Delete(S, 1, 2);
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                push    de
+                ld      de,2            ; Literal 2
+                push    de
+                call    __delete
+; Post call cleanup 6 bytes
+                pop     hl
+                pop     hl
+                pop     hl
+; [30]       Dec(L, 2);
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                push    hl
+                ld      bc,2            ; Literal 2
+                pop     hl
+                call    __dec16by
+; [31]     end
+; [32]     else DR := 0;
+                jp      endif76
+false75:
+                ld      de,ix
+                ld      hl,-10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                ld      (hl),e
+endif76:
+; [33] 
+; [34]     P := Pos('.', S);
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                push    hl
+                push    hl
+                ld      de,46           ; Literal 46
+                call    __char2str
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                call    __loadstr
+                call    __pos
+; Post call cleanup 512 bytes
+                ld      hl,512          ; Clear
+                add     hl,sp
+                ld      sp,hl
+                pop     de
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [35]     if P = 0 then P := L + 1;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_eq
+                and     a
+                jp      z,false77
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl              ; Literal 1
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+false77:
+; [36] 
+; [37]     Q := P - 1;
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [38]     if Q > 8 then Q := 8;
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,8            ; Literal 8
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,false78
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      de,8
+                ld      (hl),e \ inc hl \ ld (hl),d
+false78:
+; [39] 
+; [40]     for I := 1 to Q do FN[I - 1] := UpCase(S[I]);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      de,1
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak80
+forloop79:
+                ld      de,ix
+                ld      hl,-10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                call    func49
+                ex      de,hl
+                pop     hl
+                ld      (hl),e
+fornext81:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak80
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop79
+forbreak80:     pop     de              ; Cleanup limit
+; [41]     for I := Q + 1 to 8 do FN[I - 1] := ' ';
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl              ; Literal 1
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,8            ; Literal 8
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak83
+forloop82:
+                ld      de,ix
+                ld      hl,-10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ld      de,32
+                ld      (hl),e
+fornext84:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak83
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop82
+forbreak83:     pop     de              ; Cleanup limit
+; [42] 
+; [43]     Q := L - P;
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [44]     if Q > 3 then Q := 3;
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,3            ; Literal 3
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,false85
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      de,3
+                ld      (hl),e \ inc hl \ ld (hl),d
+false85:
+; [45] 
+; [46]     for I := 1 to Q do TN[I - 1] := UpCase(S[P + I]);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      de,1
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak87
+forloop86:
+                ld      de,ix
+                ld      hl,-10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,9
+                add     hl,de
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                call    func49
+                ex      de,hl
+                pop     hl
+                ld      (hl),e
+fornext88:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak87
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop86
+forbreak87:     pop     de              ; Cleanup limit
+; [47]     for I := Q + 1 to 3 do TN[I - 1] := ' ';
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl              ; Literal 1
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,3            ; Literal 3
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak90
+forloop89:
+                ld      de,ix
+                ld      hl,-10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,9
+                add     hl,de
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ld      de,32
+                ld      (hl),e
+fornext91:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak90
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop89
+forbreak90:     pop     de              ; Cleanup limit
+; [48] (*
+; [49]     Write(DR, ':');
+; [50]     for I := 0 to 7 do Write(FN[I]);
+; [51]     Write('.');
+; [52]     for I := 0 to 2 do Write(TN[I]);
+; [53]     WriteLn;
+; [54] *)
+; [55]   end;
+                pop     bc
+; [56] end;
+exit74:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [57] 
+; [58] procedure Assign(var T: Text; S: String);
+; [59] begin
+; var T(+262), S(+6)
+proc92:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [60]   InitFCB(T.FCB, S);
+                ld      de,ix
+                ld      hl,262
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3            ; Literal 3
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                call    __loadstr
+                call    proc73
+; Post call cleanup 258 bytes
+                ld      hl,258          ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [61] end;
+exit93:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [62] 
+; [63] procedure Reset(var T: Text);
+; [64] var
+; [65]   A: Integer;
+; [66] begin
+; var T(+6), A(-2)
+proc94:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [67]   with T do
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+; [68]   begin
+; [69]     with FCB do
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3
+                add     hl,de
+; [70]     begin
+; [71]       EX := 0;
+                push    hl
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,12
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [72]       S1 := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,13
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [73]       S2 := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,14
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [74]       RC := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,15
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [75]       CR := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,32
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [76]     end;
+                pop     bc
+; [77] 
+; [78]     A := Bdos(15, Addr(T.FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,15           ; Literal 15
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3            ; Literal 3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [79] 
+; [80]     T.Offset := 128;
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,128          ; Literal 128
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [81]     T.Writing := False;
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl \ inc hl     ; Literal 2
+                ld      de,0
+                ld      (hl),e
+; [82]   end;
+                pop     bc
+; [83] end;
+exit95:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [84] 
+; [85] procedure Rewrite(var T: Text);
+; [86] var
+; [87]   A: Integer;
+; [88] begin
+; var T(+6), A(-2)
+proc96:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [89]   with T do
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+; [90]   begin
+; [91]     with FCB do
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3
+                add     hl,de
+; [92]     begin
+; [93]       EX := 0;
+                push    hl
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,12
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [94]       S1 := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,13
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [95]       S2 := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,14
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [96]       RC := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,15
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [97]       CR := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,32
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [98]     end;
+                pop     bc
+; [99] 
+; [100]     A := Bdos(19, Addr(FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,19           ; Literal 19
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [101]     A := Bdos(22, Addr(FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,22           ; Literal 22
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [102] 
+; [103]     Offset := 0;
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [104]     Writing := True;
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl \ inc hl
+                ld      de,1
+                ld      (hl),e
+; [105]   end;
+                pop     bc
+; [106] end;
+exit97:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [107] 
+; [108] procedure Append(var T: Text);
+; [109] var
+; [110]   A: Integer;
+; [111] begin
+; var T(+6), A(-2)
+proc98:         push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [112]   with T do
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+; [113]   begin
+; [114]     with FCB do
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3
+                add     hl,de
+; [115]     begin
+; [116]       EX := 0;
+                push    hl
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,12
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [117]       S1 := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,13
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [118]       S2 := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,14
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [119]       RC := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,15
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [120]       CR := 0;
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,32
+                add     hl,de
+                ld      de,0
+                ld      (hl),e
+; [121]     end;
+                pop     bc
+; [122] 
+; [123]     A := Bdos(15, Addr(FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,15           ; Literal 15
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [124]     A := Bdos(35, Addr(FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,35           ; Literal 35
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [125]     A := Bdos(33, Addr(FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,33           ; Literal 33
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [126] 
+; [127]     Offset := 0;
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [128]     while Offset < 128 do
+while100:
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,128          ; Literal 128
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+; [129]     begin
+                bit     0,l
+                jp      z,false101
+; [130]       if DMA[Offset] = #26 then Exit;
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,39
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,26           ; Literal 26
+                call    __int16_eq
+                and     a
+                jp      z,false102
+                jp      exit99          ; Exit
+false102:
+; [131]       Inc(Offset);
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                call    __inc16
+; [132]     end;
+                jp      while100
+false101:
+; [133] 
+; [134]     (* Treat 128 as file format error? *)
+; [135]   end;
+                pop     bc
+; [136] end;
+exit99:         ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [137] 
+; [138] procedure ReadRec(var T: Text);
+; [139] var
+; [140]   A: Integer;
+; [141] begin
+; var T(+6), A(-2)
+proc103:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [142]   A := Bdos(26, Addr(T.DMA));
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,26           ; Literal 26
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,39           ; Literal 39
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [143]   A := Bdos(20, Addr(T.FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,20           ; Literal 20
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3            ; Literal 3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [144]   T.Offset := 0;
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [145] end;
+exit104:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [146] 
+; [147] function ReadChar(var T: Text): Char;
+; [148] var
+; [149]   C: Char;
+; [150] begin
+; var ReadChar(+8), T(+6), C(-2)
+func105:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [151]   if T.Offset > 127 then ReadRec(T);
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,127          ; Literal 127
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,false107
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                call    proc103
+; Post call cleanup 2 bytes
+                pop     hl
+false107:
+; [152]   C := T.DMA[T.Offset];
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,39           ; Literal 39
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      (hl),e
+; [153]   if C <> #26 then T.Offset := T.Offset + 1;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,26           ; Literal 26
+                call    __int16_neq
+                and     a
+                jp      z,false108
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl              ; Literal 1
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+false108:
+; [154]   ReadChar := C;
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      (hl),e
+; [155] end;
+exit106:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [156] 
+; [157] procedure ReadLine(var T: Text; var S: String);
+; [158] var
+; [159]   C: Char;
+; [160] begin
+; var T(+8), S(+6), C(-2)
+proc109:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [161]   S := '';
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,string68
+                pop     de
+                ld      a,255
+                call    __movestr
+; [162] 
+; [163]   while Length(S) < 255 do
+while111:
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                call    __loadstr
+                call    __length
+; Post call cleanup 256 bytes
+                call    __rmstr
+                ld      de,255          ; Literal 255
+                pop     hl
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+; [164]   begin
+                bit     0,l
+                jp      z,false112
+; [165]     C := ReadChar(T);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,0            ; Literal 0
+                push    de
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                call    func105
+; Post call cleanup 2 bytes
+                pop     hl
+                pop     de
+                pop     hl
+                ld      (hl),e
+; [166] 
+; [167]     if C = #10 then Break;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,10           ; Literal 10
+                call    __int16_eq
+                and     a
+                jp      z,false113
+                jp      false112        ; Break
+false113:
+; [168]     if C = #26 then Break;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,26           ; Literal 26
+                call    __int16_eq
+                and     a
+                jp      z,false114
+                jp      false112        ; Break
+false114:
+; [169] 
+; [170]     if C >= ' ' then S := S + C;
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,32           ; Literal 32
+                call    __int16_geq
+                and     a
+                jp      z,false115
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                call    __loadstr
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      d,0
+                ld      e,(hl)
+                call    __char2str
+                call    __stradd
+                call    __rmstr
+                ld      a,255
+                call    __storestr
+false115:
+; [171]   end;
+                jp      while111
+false112:
+; [172] end;
+exit110:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [173] 
+; [174] procedure WriteRec(var T: Text);
+; [175] var
+; [176]   A: Integer;
+; [177] begin
+; var T(+6), A(-2)
+proc116:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [178]   A := Bdos(26, Addr(T.DMA));
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,26           ; Literal 26
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,39           ; Literal 39
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [179]   A := Bdos(21, Addr(T.FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,21           ; Literal 21
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3            ; Literal 3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [180]   T.Offset := 0;
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [181] end;
+exit117:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [182] 
+; [183] 
+; [184] procedure WriteChar(var T: Text; C: Char);
+; [185] begin
+; var T(+8), C(+6)
+proc118:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [186]   if T.Offset > 127 then WriteRec(T);
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,127          ; Literal 127
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,false120
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                call    proc116
+; Post call cleanup 2 bytes
+                pop     hl
+false120:
+; [187]   T.DMA[T.Offset] := C;
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,39           ; Literal 39
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                pop     hl
+                ld      (hl),e
+; [188]   T.Offset := T.Offset + 1;
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl              ; Literal 1
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [189] end;
+exit119:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [190] 
+; [191] procedure WriteLine(var T: Text; S: String);
+; [192] var
+; [193]   I: Integer;
+; [194] begin
+; var T(+262), S(+6), I(-2)
+proc121:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [195]   for I := 1 to Length(S) do WriteChar(T, S[I]);
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      de,1
+                ld      (hl),e \ inc hl \ ld (hl),d
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                call    __loadstr
+                call    __length
+; Post call cleanup 256 bytes
+                call    __rmstr
+                pop     de              ; Dup and pre-check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak124
+forloop123:
+                ld      de,ix
+                ld      hl,262
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                push    de
+                call    proc118
+; Post call cleanup 4 bytes
+                pop     hl
+                pop     hl
+fornext125:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak124
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop123
+forbreak124:    pop     de              ; Cleanup limit
+; [196] 
+; [197]   WriteChar(T, #13);
+                ld      de,ix
+                ld      hl,262
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,13           ; Literal 13
+                push    de
+                call    proc118
+; Post call cleanup 4 bytes
+                pop     hl
+                pop     hl
+; [198]   WriteChar(T, #10);
+                ld      de,ix
+                ld      hl,262
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,10           ; Literal 10
+                push    de
+                call    proc118
+; Post call cleanup 4 bytes
+                pop     hl
+                pop     hl
+; [199] end;
+exit122:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [200] 
+; [201] function IsEof(var T: Text): Boolean;
+; [202] begin
+; var IsEof(+8), T(+6)
+func126:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [203]   if T.Offset > 127 then ReadRec(T);
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,127          ; Literal 127
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,false128
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                call    proc103
+; Post call cleanup 2 bytes
+                pop     hl
+false128:
+; [204]   IsEof := T.DMA[T.Offset] = #26;
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,39           ; Literal 39
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,26           ; Literal 26
+                call    __int16_eq
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      (hl),e
+; [205] end;        
+exit127:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [206] 
+; [207] procedure Close(var T: Text);
+; [208] var
+; [209]   A: Integer;
+; [210] begin
+; var T(+6), A(-2)
+proc129:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [211]   if T.Writing then
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl \ inc hl     ; Literal 2
+                ld      d,0
+                ld      e,(hl)
+; [212]   begin
+                ex      de,hl
+                bit     0,l
+                jp      z,false131
+; [213]     WriteChar(T, #26);
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,26           ; Literal 26
+                push    de
+                call    proc118
+; Post call cleanup 4 bytes
+                pop     hl
+                pop     hl
+; [214]     WriteRec(T);
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                call    proc116
+; Post call cleanup 2 bytes
+                pop     hl
+; [215]   end;
+false131:
+; [216] 
+; [217]   A := Bdos(16, Addr(T.FCB));
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,16           ; Literal 16
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3            ; Literal 3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [218] end;
+exit130:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [219] 
+; [220] procedure Erase(var T: Text);
+; [221] var
+; [222]   A: Integer;
+; [223] begin
+; var T(+6), A(-2)
+proc132:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [224]   A := Bdos(19, Addr(T.FCB));
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,19           ; Literal 19
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3            ; Literal 3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [225] end;
+exit133:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [226] 
+; [227] procedure Rename(var T: Text; S: String);
+; [228] var
+; [229]   F: FileControlBlock;
+; [230]   A: Integer;
+; [231] begin
+; var T(+262), S(+6), F(-36), A(-38)
+proc134:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                ld      hl,-38          ; Space
+                add     hl,sp
+                ld      sp,hl
+; [232]   InitFCB(F, S);
+                ld      de,ix
+                ld      hl,-36
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                call    __loadstr
+                call    proc73
+; Post call cleanup 258 bytes
+                ld      hl,258          ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [233]   Move(F, T.FCB.AL, 12);
+                ld      de,ix
+                ld      hl,-36
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,262
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3            ; Literal 3
+                add     hl,de
+                ld      de,16
+                add     hl,de
+                push    hl
+                ld      bc,12           ; Literal 12
+                pop     de
+                pop     hl
+                call    __move
+; [234]   A := Bdos(23, Addr(T.FCB));
+                ld      de,ix
+                ld      hl,-38
+                add     hl,de
+                push    hl
+                ld      de,23           ; Literal 23
+                push    de
+                ld      de,ix
+                ld      hl,262
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,3            ; Literal 3
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                push    ix
+                ld      c,l
+                call    5
+                pop     ix
+                ld      l,a
+                ld      h,0
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [235] end;
+exit135:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [3] 
+; [4] type
+; [5]   TLine = String[140];
+; [6] 
+; [7] var
+; [8]   Lines: array[0..139, 0..139] of Char;
+global136:      ds      19600           ; Global Lines
+; [9]   Width, Height, Part1, Part2, OffX, OffY, I, J: Integer;
+global137:      ds      2               ; Global Width
+global138:      ds      2               ; Global Height
+global139:      ds      2               ; Global Part1
+global140:      ds      2               ; Global Part2
+global141:      ds      2               ; Global OffX
+global142:      ds      2               ; Global OffY
+global143:      ds      2               ; Global I
+global144:      ds      2               ; Global J
+; [10] 
+; [11] procedure Load(Path: string);
+; [12] var
+; [13]   T: Text;
+; [14]   S: String;
+; [15] begin
+; var Path(+6), T(-167), S(-423)
+proc145:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                ld      hl,-423         ; Space
+                add     hl,sp
+                ld      sp,hl
+; [16]   Assign(T, Path);
+                ld      de,ix
+                ld      hl,-167
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                call    __loadstr
+                call    proc92
+; Post call cleanup 258 bytes
+                ld      hl,258          ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [17]   Reset(T);
+                ld      de,ix
+                ld      hl,-167
+                add     hl,de
+                push    hl
+                call    proc94
+; Post call cleanup 2 bytes
+                pop     hl
+; [18] 
+; [19]   Height := 0;
+                ld      hl,global138    ; Get global Height
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [20]   Width := 0;
+                ld      hl,global137    ; Get global Width
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [21] 
+; [22]   while not IsEof(T) do
+while147:
+                ld      de,0            ; Literal 0
+                push    de
+                ld      de,ix
+                ld      hl,-167
+                add     hl,de
+                push    hl
+                call    func126
+; Post call cleanup 2 bytes
+                pop     hl
+                pop     hl              ; Not
+                ld      a,1
+                xor     l
+                ld      l,a
+; [23]   begin
+                bit     0,l
+                jp      z,false148
+; [24]     ReadLine(T, S);
+                ld      de,ix
+                ld      hl,-167
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-423
+                add     hl,de
+                push    hl
+                call    proc109
+; Post call cleanup 4 bytes
+                pop     hl
+                pop     hl
+; [25]     Move(S[1], Lines[Height], Length(S));
+                ld      de,ix
+                ld      hl,-423
+                add     hl,de
+                inc     hl
+                push    hl
+                ld      hl,global136    ; Get global Lines
+                push    hl
+                ld      hl,(global138)  ; Get global Height
+                ld      de,140          ; Literal 140
+                call    __mul16         ; Mul
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                push    hl
+                ld      de,ix
+                ld      hl,-423
+                add     hl,de
+                call    __loadstr
+                call    __length
+; Post call cleanup 256 bytes
+                call    __rmstr
+                pop     bc
+                pop     de
+                pop     hl
+                call    __move
+; [26]     Inc(Height);
+                ld      hl,global138    ; Get global Height
+                call    __inc16
+; [27]   end;
+                jp      while147
+false148:
+; [28] 
+; [29]   Width := Length(S);
+                ld      hl,global137    ; Get global Width
+                push    hl
+                push    hl
+                ld      de,ix
+                ld      hl,-423
+                add     hl,de
+                call    __loadstr
+                call    __length
+; Post call cleanup 256 bytes
+                call    __rmstr
+                pop     de
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [30] end;
+exit146:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [31] 
+; [32] procedure ConOut(C: Char); register;
+; [33] inline (
+proc149:
+; [34]   $4d /                 (* ld c,l           *)
+                db      77
+; [35]   $2a / $01 / $00 /     (* ld hl,($0001)    *)
+                db      42,1,0
+; [36]   $11 / $09 / $00 /     (* ld de, $0009     *)
+                db      17,9,0
+; [37]   $19 /                 (* add hl,de        *)
+                db      25
+; [38]   $e9                   (* jp (hl)          *)
+; [39] );
+                db      233
+                ret
+; [40] 
+; [41] procedure Draw(X, Y, DX, DY: Integer; S: string);
+; [42] var
+; [43]   I: Integer;
+; [44] begin
+; var X(+268), Y(+266), DX(+264), DY(+262), S(+6), I(-2)
+proc150:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [45]   Write(#27'p');
+                push    hl
+                ld      hl,string152
+                call    __puts
+; [46] 
+; [47]   X := X - OffX;
+                ld      de,ix
+                ld      hl,268
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,268
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,(global141)  ; Get global OffX
+                ex      de,hl
+                pop     hl
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [48]   Y := Y - OffY;
+                ld      de,ix
+                ld      hl,266
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,266
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,(global142)  ; Get global OffY
+                ex      de,hl
+                pop     hl
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [49] 
+; [50]   for I := 1 to Length(S) do
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      de,1
+                ld      (hl),e \ inc hl \ ld (hl),d
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                call    __loadstr
+                call    __length
+; Post call cleanup 256 bytes
+                call    __rmstr
+                pop     de              ; Dup and pre-check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak154
+forloop153:
+; [51]   begin
+; [52]     if (X < 0) or (Y < 0) or (X >= 20) or (Y >= 70) then Break;
+                ld      de,ix
+                ld      hl,268
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,266
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,268
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,20           ; Literal 20
+                call    __int16_geq
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,266
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,70           ; Literal 70
+                call    __int16_geq
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+                bit     0,l
+                jp      z,false156
+                jp      forbreak154     ; Break
+false156:
+; [53] 
+; [54]     GotoXY(6 + Y, 3 + X);
+                ld      de,6            ; Literal 6
+                push    de
+                ld      de,ix
+                ld      hl,266
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,3            ; Literal 3
+                push    de
+                ld      de,ix
+                ld      hl,268
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                call    __gotoxy
+; [55]     ConOut(S[I]);
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                call    proc149
+; [56] 
+; [57]     X := X + DX;
+                ld      de,ix
+                ld      hl,268
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,268
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,264
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [58]     Y := Y + DY;
+                ld      de,ix
+                ld      hl,266
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,266
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,262
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [59]   end;
+fornext155:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak154
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop153
+forbreak154:    pop     de              ; Cleanup limit
+; [60] 
+; [61]   Write(#27'q');
+                ld      hl,string157
+                call    __puts
+; [62] end;
+exit151:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [63] 
+; [64] procedure Extract(X, Y, DX, DY, Count: Integer; var S: string);
+; [65] var
+; [66]   I: Integer;
+; [67] begin
+; var X(+16), Y(+14), DX(+12), DY(+10), Count(+8), S(+6), I(-2)
+proc158:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+; [68]   S := '';
+                push    hl
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,string68
+                pop     de
+                ld      a,255
+                call    __movestr
+; [69] 
+; [70]   for I := 1 to Count do
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      de,1
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak161
+forloop160:
+; [71]   begin
+; [72]     if (X < 0) or (Y < 0) or (X >= Height) or (Y >= Width) then Break;
+                ld      de,ix
+                ld      hl,16
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,14
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,16
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,(global138)  ; Get global Height
+                ex      de,hl
+                pop     hl
+                call    __int16_geq
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,14
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      hl,(global137)  ; Get global Width
+                ex      de,hl
+                pop     hl
+                call    __int16_geq
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+                bit     0,l
+                jp      z,false163
+                jp      forbreak161     ; Break
+false163:
+; [73] 
+; [74]     S := S + Lines[X][Y];
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                call    __loadstr
+                ld      hl,global136    ; Get global Lines
+                push    hl
+                ld      de,ix
+                ld      hl,16
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,140          ; Literal 140
+                call    __mul16         ; Mul
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,14
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                call    __char2str
+                call    __stradd
+                call    __rmstr
+                ld      a,255
+                call    __storestr
+; [75] 
+; [76]     X := X + DX;
+                ld      de,ix
+                ld      hl,16
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,16
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,12
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [77]     Y := Y + DY;
+                ld      de,ix
+                ld      hl,14
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,14
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [78]   end;
+fornext162:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak161
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop160
+forbreak161:    pop     de              ; Cleanup limit
+; [79] end;
+exit159:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [80] 
+; [81] procedure Solve1(MinX, MinY, MaxX, MaxY: Integer);
+; [82] var
+; [83]   X, Y, DX, DY: Integer;
+; [84]   S: String;
+; [85] begin
+; var MinX(+12), MinY(+10), MaxX(+8), MaxY(+6), X(-2), Y(-4), DX(-6), DY(-8), S(-264)
+proc164:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                ld      hl,-264         ; Space
+                add     hl,sp
+                ld      sp,hl
+; [86]   for X := MinX to MaxX - 1 do
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                ld      hl,12
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak167
+forloop166:
+; [87]     for Y := MinY to MaxY - 1 do
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak170
+forloop169:
+; [88]       for DX := -1 to 1 do
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                and     a
+                sbc     hl,hl
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,1            ; Literal 1
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak173
+forloop172:
+; [89]         for DY := -1 to 1 do
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                and     a
+                sbc     hl,hl
+                sbc     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,1            ; Literal 1
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak176
+forloop175:
+; [90]           if (DX <> 0) or (DY <> 0) then
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_neq
+                ld      h,0
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,0            ; Literal 0
+                call    __int16_neq
+                ld      h,0
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+; [91]             if Lines[X, Y] = 'X' then
+                bit     0,l
+                jp      z,false178
+                ld      hl,global136    ; Get global Lines
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,140          ; Literal 140
+                call    __mul16         ; Mul
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,88           ; Literal 88
+                call    __int16_eq
+                ld      h,0
+                ld      l,a
+; [92]             begin
+                bit     0,l
+                jp      z,false179
+; [93]               Extract(X, Y, DX, DY, 4, S);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,4            ; Literal 4
+                push    de
+                ld      de,ix
+                ld      hl,-264
+                add     hl,de
+                push    hl
+                call    proc158
+; Post call cleanup 12 bytes
+                ld      hl,12           ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [94]               if S = 'XMAS' then
+                ld      de,ix
+                ld      hl,-264
+                add     hl,de
+                call    __loadstr
+                ld      hl,string180
+                call    __loadstr
+                call    __streq
+                ld      hl,512          ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [95]               begin
+                ex      de,hl
+                bit     0,l
+                jp      z,false181
+; [96]                 Inc(Part1);
+                ld      hl,global139    ; Get global Part1
+                call    __inc16
+; [97] 
+; [98]                 GotoXY(32, 24);
+                ld      hl,32           ; Literal 32
+                ld      de,24           ; Literal 24
+                call    __gotoxy
+; [99]                 Write(Part1: 5);
+                ld      hl,(global139)  ; Get global Part1
+                ex      de,hl
+                push    de
+                ld      bc,5            ; Literal 5
+                pop     hl
+                call    __putn_fmt
+; [100] 
+; [101]                 Draw(X, Y, DX, DY, S);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                push    de
+                ld      de,ix
+                ld      hl,-264
+                add     hl,de
+                call    __loadstr
+                call    proc150
+; Post call cleanup 264 bytes
+                ld      hl,264          ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [102]               end;
+false181:
+; [103]             end;
+false179:
+false178:
+fornext177:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak176
+                ld      de,ix
+                ld      hl,-8
+                add     hl,de
+                call    __inc16
+                jp      forloop175
+forbreak176:    pop     de              ; Cleanup limit
+fornext174:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak173
+                ld      de,ix
+                ld      hl,-6
+                add     hl,de
+                call    __inc16
+                jp      forloop172
+forbreak173:    pop     de              ; Cleanup limit
+fornext171:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak170
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                call    __inc16
+                jp      forloop169
+forbreak170:    pop     de              ; Cleanup limit
+fornext168:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak167
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop166
+forbreak167:    pop     de              ; Cleanup limit
+; [104] end;
+exit165:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [105] 
+; [106] procedure Solve2(MinX, MinY, MaxX, MaxY: Integer);
+; [107] var
+; [108]   X, Y: Integer;
+; [109]   S, T: String;
+; [110] begin     
+; var MinX(+12), MinY(+10), MaxX(+8), MaxY(+6), X(-2), Y(-4), S(-260), T(-516)
+proc182:        push    ix              ; Prologue
+                ld      hl,(display+4)
+                push    hl
+                ld      ix,0
+                add     ix,sp
+                ld      (display+4),ix
+                ld      hl,-516         ; Space
+                add     hl,sp
+                ld      sp,hl
+; [111]   for X := MinX to MaxX - 1 do
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                push    hl
+                ld      de,ix
+                ld      hl,12
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,ix
+                ld      hl,8
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak185
+forloop184:
+; [112]     for Y := MinY to MaxY - 1 do
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,10
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,ix
+                ld      hl,6
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                ex      de,hl
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak188
+forloop187:
+; [113]       if Lines[X, Y] = 'A' then
+                ld      hl,global136    ; Get global Lines
+                push    hl
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,140          ; Literal 140
+                call    __mul16         ; Mul
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                ld      de,65           ; Literal 65
+                call    __int16_eq
+                ld      h,0
+                ld      l,a
+; [114]       begin
+                bit     0,l
+                jp      z,false190
+; [115]         Extract(X - 1, Y - 1,  1, 1, 3, S);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                push    de
+                ld      de,1            ; Literal 1
+                push    de
+                ld      de,3            ; Literal 3
+                push    de
+                ld      de,ix
+                ld      hl,-260
+                add     hl,de
+                push    hl
+                call    proc158
+; Post call cleanup 12 bytes
+                ld      hl,12           ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [116]         Extract(X + 1, Y - 1, -1, 1, 3, T);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl              ; Literal 1
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                and     a
+                sbc     hl,hl
+                sbc     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                push    de
+                ld      de,3            ; Literal 3
+                push    de
+                ld      de,ix
+                ld      hl,-516
+                add     hl,de
+                push    hl
+                call    proc158
+; Post call cleanup 12 bytes
+                ld      hl,12           ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [117] 
+; [118]         if ((S = 'MAS') or (S = 'SAM')) and ((T = 'MAS') or (T = 'SAM')) then
+                ld      de,ix
+                ld      hl,-260
+                add     hl,de
+                call    __loadstr
+                ld      hl,string191
+                call    __loadstr
+                call    __streq
+                ld      hl,512          ; Clear
+                add     hl,sp
+                ld      sp,hl
+                push    de
+                ld      de,ix
+                ld      hl,-260
+                add     hl,de
+                call    __loadstr
+                ld      hl,string192
+                call    __loadstr
+                call    __streq
+                ld      hl,512          ; Clear
+                add     hl,sp
+                ld      sp,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+                push    hl
+                ld      de,ix
+                ld      hl,-516
+                add     hl,de
+                call    __loadstr
+                ld      hl,string191
+                call    __loadstr
+                call    __streq
+                ld      hl,512          ; Clear
+                add     hl,sp
+                ld      sp,hl
+                push    de
+                ld      de,ix
+                ld      hl,-516
+                add     hl,de
+                call    __loadstr
+                ld      hl,string192
+                call    __loadstr
+                call    __streq
+                ld      hl,512          ; Clear
+                add     hl,sp
+                ld      sp,hl
+                pop     hl
+                ld      a,l
+                or      e
+                ld      l,a
+                ex      de,hl
+                pop     hl
+                ld      a,l
+                and     e
+                ld      l,a
+; [119]         begin
+                bit     0,l
+                jp      z,false193
+; [120]           Inc(Part2);
+                ld      hl,global140    ; Get global Part2
+                call    __inc16
+; [121] 
+; [122]           GotoXY(51, 24);
+                ld      hl,51           ; Literal 51
+                ld      de,24           ; Literal 24
+                call    __gotoxy
+; [123]           Write(Part2: 5);
+                ld      hl,(global140)  ; Get global Part2
+                ex      de,hl
+                push    de
+                ld      bc,5            ; Literal 5
+                pop     hl
+                call    __putn_fmt
+; [124] 
+; [125]           Draw(X - 1, Y - 1,  1, 1, S);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                push    de
+                ld      de,1            ; Literal 1
+                push    de
+                ld      de,ix
+                ld      hl,-260
+                add     hl,de
+                call    __loadstr
+                call    proc150
+; Post call cleanup 264 bytes
+                ld      hl,264          ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [126]           Draw(X + 1, Y - 1, -1, 1, T);
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                inc     hl              ; Literal 1
+                push    hl
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                ld      de,1            ; Literal 1
+                xor     a
+                sbc     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                and     a
+                sbc     hl,hl
+                sbc     hl,de
+                push    hl
+                ld      de,1            ; Literal 1
+                push    de
+                ld      de,ix
+                ld      hl,-516
+                add     hl,de
+                call    __loadstr
+                call    proc150
+; Post call cleanup 264 bytes
+                ld      hl,264          ; Clear
+                add     hl,sp
+                ld      sp,hl
+; [127]         end;
+false193:
+; [128]       end;
+false190:
+fornext189:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak188
+                ld      de,ix
+                ld      hl,-4
+                add     hl,de
+                call    __inc16
+                jp      forloop187
+forbreak188:    pop     de              ; Cleanup limit
+fornext186:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                ld      e,(hl) \ inc hl \ ld d,(hl)
+                ex      de,hl
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak185
+                ld      de,ix
+                dec     de \ dec de
+                ex      de,hl
+                call    __inc16
+                jp      forloop184
+forbreak185:    pop     de              ; Cleanup limit
+; [129] end;
+exit183:        ld      sp,ix           ; Epilogue
+                pop     hl
+                ld      (display+4),hl
+                pop     ix
+                ret
+; [130] 
+; [131] begin
+; var Lines(0), Width(0), Height(0), Part1(0), Part2(0), OffX(0), OffY(0), I(0), J(0)
+main:           call    __init
+                ld      ix,0
+                add     ix,sp
+; [132]   Write(#27'f');
+                ld      hl,string195
+                call    __puts
+; [133] 
+; [134]   ClrScr;
+                call    __clrscr
+; [135]   GotoXY(24, 1);
+                ld      hl,24           ; Literal 24
+                ld      de,1            ; Literal 1
+                call    __gotoxy
+; [136]   WriteLn('*** AoC 2024.04 Ceres Search ***');
+                ld      hl,string196
+                call    __puts
+                call    __newline
+; [137] 
+; [138]   GotoXY(24, 24); Write('Part 1:     0      Part 2:     0');
+                ld      hl,24           ; Literal 24
+                ld      de,24           ; Literal 24
+                call    __gotoxy
+                ld      hl,string197
+                call    __puts
+; [139] 
+; [140]   Load('input.txt');
+                ld      hl,string198
+                call    __loadstr
+                call    proc145
+; Post call cleanup 256 bytes
+                call    __rmstr
+; [141] 
+; [142]   Part1 := 0;
+                ld      hl,global139    ; Get global Part1
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [143]   Part2 := 0;
+                ld      hl,global140    ; Get global Part2
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [144] 
+; [145]   OffX := 0;
+                ld      hl,global141    ; Get global OffX
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [146] 
+; [147]   while OffX < Height do
+while199:
+                ld      hl,(global141)  ; Get global OffX
+                ex      de,hl
+                push    de
+                ld      hl,(global138)  ; Get global Height
+                ex      de,hl
+                pop     hl
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+; [148]   begin
+                bit     0,l
+                jp      z,false200
+; [149]     OffY := 0;
+                ld      hl,global142    ; Get global OffY
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [150] 
+; [151]     while OffY < Width do
+while201:
+                ld      hl,(global142)  ; Get global OffY
+                ex      de,hl
+                push    de
+                ld      hl,(global137)  ; Get global Width
+                ex      de,hl
+                pop     hl
+                call    __int16_lt
+                ld      h,0
+                ld      l,a
+; [152]     begin
+                bit     0,l
+                jp      z,false202
+; [153]       for I := 0 to 19 do
+                ld      hl,global143    ; Get global I
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,19           ; Literal 19
+                push    de
+                push    de
+                ld      hl,(global143)  ; Get global I
+                ex      de,hl
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak204
+forloop203:
+; [154]         for J := 0 to 69 do
+                ld      hl,global144    ; Get global J
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,69           ; Literal 69
+                push    de
+                push    de
+                ld      hl,(global144)  ; Get global J
+                ex      de,hl
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak207
+forloop206:
+; [155]         begin
+; [156]           GotoXY(6 + J, 3 + I);
+                ld      de,6            ; Literal 6
+                push    de
+                ld      hl,(global144)  ; Get global J
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,3            ; Literal 3
+                push    de
+                ld      hl,(global143)  ; Get global I
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                call    __gotoxy
+; [157]           ConOut(Lines[OffX + I, OffY + J]);
+                ld      hl,global136    ; Get global Lines
+                push    hl
+                ld      hl,(global141)  ; Get global OffX
+                ex      de,hl
+                push    de
+                ld      hl,(global143)  ; Get global I
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ld      de,140
+                call    __mul16         ; Mul
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      hl,(global142)  ; Get global OffY
+                ex      de,hl
+                push    de
+                ld      hl,(global144)  ; Get global J
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                call    proc149
+; [158]         end;
+fornext208:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      hl,(global144)  ; Get global J
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak207
+                ld      hl,global144    ; Get global J
+                call    __inc16
+                jp      forloop206
+forbreak207:    pop     de              ; Cleanup limit
+fornext205:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      hl,(global143)  ; Get global I
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak204
+                ld      hl,global143    ; Get global I
+                call    __inc16
+                jp      forloop203
+forbreak204:    pop     de              ; Cleanup limit
+; [159] 
+; [160]       Solve1(OffX, OffY, OffX + 20, OffY + 70);
+                ld      hl,(global141)  ; Get global OffX
+                ex      de,hl
+                push    de
+                ld      hl,(global142)  ; Get global OffY
+                ex      de,hl
+                push    de
+                ld      hl,(global141)  ; Get global OffX
+                ld      de,20           ; Literal 20
+                add     hl,de
+                push    hl
+                ld      hl,(global142)  ; Get global OffY
+                ld      de,70           ; Literal 70
+                add     hl,de
+                push    hl
+                call    proc164
+; Post call cleanup 8 bytes
+                pop     hl
+                pop     hl
+                pop     hl
+                pop     hl
+; [161] 
+; [162]       for I := 0 to 19 do
+                ld      hl,global143    ; Get global I
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,19           ; Literal 19
+                push    de
+                push    de
+                ld      hl,(global143)  ; Get global I
+                ex      de,hl
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak210
+forloop209:
+; [163]         for J := 0 to 69 do
+                ld      hl,global144    ; Get global J
+                ld      de,0
+                ld      (hl),e \ inc hl \ ld (hl),d
+                ld      de,69           ; Literal 69
+                push    de
+                push    de
+                ld      hl,(global144)  ; Get global J
+                ex      de,hl
+                pop     hl
+                call    __int16_geq
+                and     a
+                jp      z,forbreak213
+forloop212:
+; [164]         begin
+; [165]           GotoXY(6 + J, 3 + I);
+                ld      de,6            ; Literal 6
+                push    de
+                ld      hl,(global144)  ; Get global J
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      de,3            ; Literal 3
+                push    de
+                ld      hl,(global143)  ; Get global I
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                call    __gotoxy
+; [166]           ConOut(Lines[OffX + I, OffY + J]);
+                ld      hl,global136    ; Get global Lines
+                push    hl
+                ld      hl,(global141)  ; Get global OffX
+                ex      de,hl
+                push    de
+                ld      hl,(global143)  ; Get global I
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ld      de,140
+                call    __mul16         ; Mul
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                push    hl
+                ld      hl,(global142)  ; Get global OffY
+                ex      de,hl
+                push    de
+                ld      hl,(global144)  ; Get global J
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                add     hl,de
+                ld      d,0
+                ld      e,(hl)
+                ex      de,hl
+                call    proc149
+; [167]         end;
+fornext214:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      hl,(global144)  ; Get global J
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak213
+                ld      hl,global144    ; Get global J
+                call    __inc16
+                jp      forloop212
+forbreak213:    pop     de              ; Cleanup limit
+fornext211:
+                pop     de              ; Dup and check limit
+                push    de
+                push    de
+                ld      hl,(global143)  ; Get global I
+                pop     de
+                call    __int16_lt
+                and     a
+                jp      z,forbreak210
+                ld      hl,global143    ; Get global I
+                call    __inc16
+                jp      forloop209
+forbreak210:    pop     de              ; Cleanup limit
+; [168] 
+; [169]       Solve2(OffX, OffY, OffX + 20, OffY + 70);
+                ld      hl,(global141)  ; Get global OffX
+                ex      de,hl
+                push    de
+                ld      hl,(global142)  ; Get global OffY
+                ex      de,hl
+                push    de
+                ld      hl,(global141)  ; Get global OffX
+                ld      de,20           ; Literal 20
+                add     hl,de
+                push    hl
+                ld      hl,(global142)  ; Get global OffY
+                ld      de,70           ; Literal 70
+                add     hl,de
+                push    hl
+                call    proc182
+; Post call cleanup 8 bytes
+                pop     hl
+                pop     hl
+                pop     hl
+                pop     hl
+; [170] 
+; [171]       OffY := OffY + 70;
+                ld      hl,global142    ; Get global OffY
+                push    hl
+                ld      hl,(global142)  ; Get global OffY
+                ld      de,70           ; Literal 70
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [172]     end;
+                jp      while201
+false202:
+; [173] 
+; [174]     OffX := OffX + 20;
+                ld      hl,global141    ; Get global OffX
+                push    hl
+                ld      hl,(global141)  ; Get global OffX
+                ld      de,20           ; Literal 20
+                add     hl,de
+                ex      de,hl
+                pop     hl
+                ld      (hl),e \ inc hl \ ld (hl),d
+; [175]   end;
+                jp      while199
+false200:
+; [176] 
+; [177]   GotoXY(1, 23);
+                ld      hl,1            ; Literal 1
+                ld      de,23           ; Literal 23
+                call    __gotoxy
+; [178]   Write(#27'e');
+                ld      hl,string215
+                call    __puts
+; [179] end.
+exit194:        call    __done
+                ret
+string68:       db      0
+string152:      db      2,27,"p"
+string157:      db      2,27,"q"
+string180:      db      4,"XMAS"
+string191:      db      3,"MAS"
+string192:      db      3,"SAM"
+string195:      db      2,27,"f"
+string196:      db      32,"*** AoC 2024.04 Ceres Search ***"
+string197:      db      32,"Part 1:     0      Part 2:     0"
+string198:      db      9,"input.txt"
+string215:      db      2,27,"e"
+display:        ds      32              ; Display
+eof:                                    ; End of file
+; HEAP:
+; end
