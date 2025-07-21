@@ -1,0 +1,203 @@
+program Pebbles;
+
+{$i bigint.pas }
+{$a+}
+
+type
+  FileEntry = record
+    Digits: String[19];
+    Number: BigInt;
+    Count:  BigInt;
+  end;
+
+  HashEntry = record
+    Number: BigInt;
+    Offset: Integer;
+  end;
+
+const
+  MaxHash = 3799;
+
+var
+  HashTable: array[0..MaxHash] of HashEntry;
+
+procedure Clear;
+var
+  I: Integer;
+begin
+  for I := 0 to MaxHash do
+    HashTable[I].Offset := -1;
+end;
+
+function Lookup(var Number: BigInt; var Entry: Integer): Boolean;
+begin
+  Entry := (Number[0] or (Number[1] shl 8)) mod MaxHash;
+  while True do
+  begin
+    if HashTable[Entry].Offset = -1 then
+    begin
+      Lookup := False;
+      Exit;
+    end;
+
+    if BigCmp(HashTable[Entry].Number, Number) = 0 then
+    begin
+      Lookup := True;
+      Exit;
+    end;
+
+    Entry := (Entry + 1) mod 4096;
+  end;
+end;
+
+function IntToStr(I: Integer): String;
+var
+  S: String[31];
+begin
+  Str(I, S);
+  IntToStr := S;
+end;
+
+procedure Simulate(Step: Integer; var Total: BigInt);
+var
+  InFile, OutFile: file of FileEntry;
+  Entry: FileEntry;
+  Left, Right, Big2024: BigInt;
+  S, T: String[31];
+  P: Integer;
+
+  procedure AddStones(Number, Count: BigInt);
+  var
+    Entry: FileEntry;
+    U, V: String[31];
+    Index: Integer;
+  begin
+    BigStr(Number, U);
+    BigStr(Count, V);
+
+    //WriteLn('Writing: ', U, ' x ', V);
+
+    if Lookup(Number, Index) then
+    begin
+      Seek(OutFile, HashTable[Index].Offset);
+      Read(OutFile, Entry);
+      BigAdd(Entry.Count, Count);
+      Seek(OutFile, HashTable[Index].Offset);
+      Write(OutFile, Entry);
+    end
+    else
+    begin
+      HashTable[Index].Number := Number;
+      HashTable[Index].Offset := FileSize(OutFile);
+
+      //WriteLn('New entry offset is ', HashTable[Index].Offset);
+
+      Entry.Number := Number;
+      Entry.Count := Count;
+      Seek(OutFile, FileSize(OutFile));
+      Write(OutFile, Entry);
+    end;
+
+    BigAdd(Total, Count);
+  end;
+
+begin
+  WriteLn('--- Step ', Step, ' ---');
+
+  Assign(InFile, 'step-' + IntToStr(Step - 1) + '.tmp');
+  Reset(InFile);
+
+  Assign(OutFile, 'step-' + IntToStr(Step) + '.tmp');
+  Rewrite(OutFile);
+
+  Clear;
+  BigVal('2024', Big2024);
+  Total := BigMin;
+
+  while not Eof(InFile) do
+  begin
+    //WriteLn(FilePos(InFile));
+    Read(InFile, Entry);
+
+    with Entry do
+    begin
+      BigStr(Number, S);
+      BigStr(Count, T);
+
+      //WriteLn('Reading: ', T, ' x ', S);
+
+      if BigCmp(Number, BigMin) = 0 then
+        AddStones(BigOne, Count)
+      else if BigCmp(Number, BigOne) = 0 then
+        AddStones(Big2024, Count)
+      else if Odd(Length(S)) then
+      begin
+        BigMul(Number, Big2024);
+        AddStones(Number, Count);
+      end
+      else
+      begin
+        P := Length(S) div 2;
+        BigVal(Copy(S, 1, P), Left);
+        BigVal(Copy(S, P + 1, 255), Right);
+        AddStones(Left, Count);
+        AddStones(Right, Count);
+      end;
+    end;
+  end;
+
+  Close(OutFile);
+  Close(InFile);
+end;
+
+var
+  Puzzle: Text;
+  IniFile: file of FileEntry;
+  Entry: FileEntry;
+  Part1, Part2: BigInt;
+  S: String;
+  I: Integer;
+
+begin
+  Assign(Puzzle, ParamStr(1));
+  Reset(Puzzle);
+  ReadLn(Puzzle, S);
+  Close(Puzzle);
+
+  Entry.Count := BigOne;
+
+  Assign(IniFile, 'step-0.tmp');
+  Rewrite(IniFile);
+
+  S := S + ' ';
+  I := 1;
+  while Length(S) <> 0 do
+  begin
+    WriteLn(S);
+
+    I := Pos(' ', S);
+    BigVal(Copy(S, 1, I - 1), Entry.Number);
+    Write(IniFile, Entry);
+    S := Copy(S, I + 1, 255);
+  end;
+
+  Close(IniFile);
+
+//  Part1 := BigMin;
+//  Simulate(1, Part1);
+//  BigStr(Part1, S);
+//  WriteLn('Part 1: ', S);
+
+//  Halt;
+
+  for I := 1 to 25 do
+    Simulate(I, Part1);
+
+  //for I := 26 to 75 do
+  //  Simulate(I, Part2);
+
+  BigStr(Part1, S);
+  WriteLn('Part 1: ', S);
+  BigStr(Part2, S);
+  WriteLn('Part 2: ', S);
+end.

@@ -23,8 +23,8 @@ begin
   begin
     I := X[B] - Y[B];
     if I <> 0 then
-    begin 
-      BigCmp := I; 
+    begin
+      BigCmp := I;
       Exit;
     end;
   end;
@@ -53,7 +53,7 @@ begin
   begin
     BigMul(X, BigTen);
     Y[0] := Ord(S[B]) - 48;
-    BigAdd(X, Y); 
+    BigAdd(X, Y);
   end;
 end;
 

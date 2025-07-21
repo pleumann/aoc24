@@ -14,7 +14,7 @@ public class Puzzle {
      * Adds a value to a given key in a hash table.
      */
     void addValue(HashMap<Long, Long> values, long key, long value) {
-        System.out.printf("%dx%d ", value, key);
+        //System.out.printf("%dx%d ", value, key);
         values.put(key, values.getOrDefault(key, 0L) + value);
     }
     
@@ -46,6 +46,19 @@ public class Puzzle {
         System.out.println();
         System.out.println();        
 
+        int small = 0;
+        int large = 0;
+        
+        for (Long v: newValues.keySet()) {
+            if (v > 32767) {
+                small++;
+            } else {
+                large++;
+            }
+        }
+        
+        System.out.printf("%d values, %d small and %d large\n", small + large, small, large);
+        
         return newValues;
     }
     
