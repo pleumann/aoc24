@@ -1,8 +1,6 @@
 program Pebbles;
 
-{$i bigint.pas }
-{$a+}
-//{$k+}
+{$i bigint48.pas }
 
 type
   FileEntry = record
@@ -21,6 +19,11 @@ const
 var
   HashTable: array[0..MaxTable] of HashEntry;
   Big2024: BigInt;
+
+const
+  ProgressStr: String[4] = '|/-\';
+  ProgressHi: Byte = 1;
+  ProgressLo: Byte = 0;
 
 procedure Clear;
 var
@@ -65,19 +68,13 @@ var
   Entry: FileEntry;
   Left, Right: BigInt;
   S, T: String[30];
-  P: Integer;
+  X, Y, P: Integer;
 
   procedure AddStones(var Number, Count: BigInt);
   var
     Entry: FileEntry;
-    //U, V: String[30];
     Index: Integer;
   begin
-    //BigStr(Number, U);
-    //BigStr(Count, V);
-
-    //WriteLn('Writing: ', V, ' x ', U);
-
     if Lookup(Number, Index) then
     begin
       Seek(OutFile, HashTable[Index].Offset);
@@ -91,8 +88,6 @@ var
       HashTable[Index].Number := Number;
       HashTable[Index].Offset := FileSize(OutFile);
 
-      //WriteLn('New entry offset is ', HashTable[Index].Offset);
-
       Entry.Number := Number;
       Entry.Count := Count;
       Seek(OutFile, FileSize(OutFile));
@@ -103,7 +98,8 @@ var
   end;
 
 begin
-  //WriteLn('--- Step ', Step, ' ---');
+  X := 1 + 16 * ((Step - 1) mod 5);
+  Y := 3 + (Step - 1) div 5;
 
   Assign(InFile, 'step-' + IntToStr(Step - 1) + '.tmp');
   Reset(InFile);
@@ -116,15 +112,21 @@ begin
 
   while not Eof(InFile) do
   begin
-    //WriteLn(FilePos(InFile));
+    Inc(ProgressLo);
+    if (ProgressLo = 10) then
+    begin
+      ProgressLo := 0;
+      GotoXY(X + 15, Y);
+      Write(ProgressStr[ProgressHi]);
+      Inc(ProgressHi);
+      if ProgressHi > 4 then ProgressHi := 1;
+    end;
+
     Read(InFile, Entry);
 
     with Entry do
     begin
       BigStr(Number, S);
-      //BigStr(Count, T);
-
-      //WriteLn('Reading: ', T, ' x ', S);
 
       if BigCmp(Number, BigMin) = 0 then
         AddStones(BigOne, Count)
@@ -150,6 +152,7 @@ begin
   Close(InFile);
 
   BigStr(Total, S);
+  GotoXY(X, Y);
   Write(S:16);
 end;
 
@@ -162,6 +165,10 @@ var
   I: Integer;
 
 begin
+  Write(#27'f');
+
+  ClrScr;
+
   WriteLn('*** AoC 2024.11 Plutonian Pebbles ***');
   WriteLn;
 
@@ -181,8 +188,6 @@ begin
   I := 1;
   while Length(S) <> 0 do
   begin
-//    WriteLn(S);
-
     I := Pos(' ', S);
     BigVal(Copy(S, 1, I - 1), Entry.Number);
     Write(IniFile, Entry);
@@ -190,13 +195,6 @@ begin
   end;
 
   Close(IniFile);
-
-//  Part1 := BigMin;
-//  Simulate(1, Part1);
-//  BigStr(Part1, S);
-//  WriteLn('Part 1: ', S);
-
-//  Halt;
 
   for I := 1 to 25 do
     Simulate(I, Part1);
@@ -211,4 +209,6 @@ begin
   WriteLn('Part 1: ', S:15);
   BigStr(Part2, S);
   WriteLn('Part 2: ', S:15);
+
+  Write(#27'e');
 end.

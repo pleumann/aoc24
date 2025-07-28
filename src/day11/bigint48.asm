@@ -9,7 +9,7 @@
 ;
 bigadd:
   module _bigadd
-        ld      b,8
+        ld      b,6
         and     a
         ex      af,af'
 bigadd1:
@@ -30,7 +30,7 @@ bigadd1:
 bigsub:
   module _bigsub
         ex      de,hl
-        ld      b,8
+        ld      b,6
         and     a
         ex      af,af'
 bigsub1:
@@ -50,7 +50,7 @@ bigsub1:
 ;
 bigmul:
   module _bigmul
-        ld      c,8
+        ld      c,6
         ld      b,0
         add     hl,bc
         ex      de,hl
@@ -138,7 +138,7 @@ bigdiv:
         ld      (dvend),hl
         ld      (dvsor),de
         push    bc
-        ld      c,8
+        ld      c,6
 
         ld      l,c
         ld      h,0
@@ -242,7 +242,7 @@ okexit:
 exit:
         ld      hl,(hdeptr)
         pop     de
-        ld      bc,8
+        ld      bc,6
         ldir
 
         ret
