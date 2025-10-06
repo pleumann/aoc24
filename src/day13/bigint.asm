@@ -8,8 +8,8 @@
 ; BigAdd: HL^ := HL^+ DE^
 ;
 bigadd:
-#local
-        ld      b,8
+  module _bigadd
+        ld      b,6
         and     a
         ex      af,af'
 bigadd1:
@@ -22,15 +22,15 @@ bigadd1:
         inc     de
         djnz    bigadd1
         ret
-#endlocal
+  endmodule
 
 ;
 ; BigSub: HL^ := HL^ - DE^
 ;
 bigsub:
-#local
+  module _bigsub
         ex      de,hl
-        ld      b,8
+        ld      b,6
         and     a
         ex      af,af'
 bigsub1:
@@ -43,14 +43,14 @@ bigsub1:
         inc     de
         djnz    bigsub1
         ret
-#endlocal
+  endmodule
 
 ;
 ; BigMul: HL^ := HL^ * DE^
 ;
 bigmul:
-#local
-        ld      c,8
+  module _bigmul
+        ld      c,6
         ld      b,0
         add     hl,bc
         ex      de,hl
@@ -128,17 +128,17 @@ count:  ds      2
 endhp:  ds      2
 mlier:  ds      2
 hiprod: ds      8
-#endlocal
+  endmodule
 
 ;
 ; BigDiv: HL^ := HL^ / DE^ and DE^ := HL^ % DE^
 ;
 bigdiv:
-#local
+  module _bigdiv
         ld      (dvend),hl
         ld      (dvsor),de
         push    bc
-        ld      c,8
+        ld      c,6
 
         ld      l,c
         ld      h,0
@@ -255,4 +255,4 @@ count:  ds      2
 subcnt: ds      1
 hide1:  ds      8
 hide2:  ds      8
-#endlocal
+  endmodule
