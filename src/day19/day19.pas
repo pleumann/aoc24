@@ -1,8 +1,8 @@
 program Day19;
 
-{$a+}
+{$a-}
+{$m 16384}
 
-{$I /Users/joerg/Projects/pl0/lib/files.pas}
 {$I bigint.pas}
 
 type
@@ -90,11 +90,11 @@ begin
       if J + LT <= LP + 1 then
         if StrEquals(Pattern[J], P^.Pattern[1], LT) then
         begin
-          GotoXY(J, 22);
-          Write(Copy(Pattern, J, LT));
+          //GotoXY(J, 22);
+          //Write(Copy(Pattern, J, LT));
           BigAdd(Table[J], Table[J + LT]);
           (*GotoXY(J, 22);
-          Write(#27'q', Copy(Pattern, J, LT));*)
+          //Write(#27'q', Copy(Pattern, J, LT));*)
         end;
 
       P := P^.Next;
@@ -152,7 +152,7 @@ begin
   Reset(T);
 
   S := '';
-  C := ReadChar(T);
+  Read(T, C);
   while C >= ' ' do
   begin
     if C >= 'a' then
@@ -163,19 +163,19 @@ begin
       S := '';
     end;
 
-    C := ReadChar(T);
+    Read(T, C);
   end;
 
   AddTowel(S);
 
-  ReadLine(T, S);
-  while not IsEof(T) do
+  ReadLn(T, S);
+  while not Eof(T) do
   begin
-    ReadLine(T, Pattern);
+    ReadLn(T, Pattern);
     GotoXY(1, 6);
     Write(#27'M');
     GotoXY(1, 22);
-    Write(#27'p', Pattern, #27'q');
+    Write(Pattern);
     (*Clear;*)
     Tmp := NumberOfWays(Pattern);
     if BigCmp(Tmp, BigMin) <> 0 then
@@ -192,6 +192,8 @@ begin
     BigStr(Part2, S);
     Write(S: 15);
   end;
+
+  Close(T);
 end;
     
 var
@@ -208,7 +210,7 @@ begin
   T := 'HAILO';
   WriteLn(StrEquals(S[1], T[1], 5));
 *)
-  InitHeap(32768);
+  //InitHeap(32768);
   Init;
   Solve('INPUT   .TXT');
 
