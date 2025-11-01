@@ -5,33 +5,31 @@
 package day24;
 
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Random;
 
 /**
  *
  * @author joerg
  */
-public class Puzzle {
+public class Puzzle2 {
 
-    Random rnd = new Random();
-    
     abstract class Node {
         
         String id;
-        
+
         abstract boolean evaluate();
         
         public Node(String id) {
             this.id = id;
         }
+
         
         abstract String toString(int depth);
         
-        abstract void dump(HashSet<String> seen);
     }
     
     HashMap<String, Node> nodes = new HashMap();
@@ -49,12 +47,10 @@ public class Puzzle {
         public boolean evaluate() {
             return value;
         }
+
         
         public String toString(int depth) {
             return id;
-        }
-        
-        void dump(HashSet<String> seen) {
         }
         
     }
@@ -84,21 +80,6 @@ public class Puzzle {
             }
         }
         
-        void dump(HashSet<String> seen) {
-            if (!seen.contains(id)) {
-                seen.add(id);
-//                for (int i = 0; i < depth; i++) {
-//                    System.out.print("  ");
-//                }
-                
-                nodes.get(left).dump(seen);
-                nodes.get(right).dump(seen);
-                System.out.println(id + " = " + left + " & " + right);
-                if (id.startsWith("z")) {
-                    System.out.println();
-                }
-            }            
-        }
     }
 
     class Or extends Node {
@@ -126,22 +107,6 @@ public class Puzzle {
             }
         }
         
-        void dump(HashSet<String> seen) {
-            if (!seen.contains(id)) {
-                seen.add(id);
-//                for (int i = 0; i < depth; i++) {
-//                    System.out.print("  ");
-//                }
-                
-                nodes.get(left).dump(seen);
-                nodes.get(right).dump(seen);
-                System.out.println(id + " = " + left + " | " + right);
-                if (id.startsWith("z")) {
-                    System.out.println();
-                }
-
-            }            
-        }
     }
 
     class Xor extends Node {
@@ -167,22 +132,6 @@ public class Puzzle {
             } else {
                 return "(" + nodes.get(left).toString(depth - 1) + " ^ " + nodes.get(right).toString(depth - 1) + ")";
             }
-        }
-        
-        void dump(HashSet<String> seen) {
-            if (!seen.contains(id)) {
-                seen.add(id);
-//                for (int i = 0; i < depth; i++) {
-//                    System.out.print("  ");
-//                }
-                
-                nodes.get(left).dump(seen);
-                nodes.get(right).dump(seen);
-                System.out.println(id + " = " + left + " ^ " + right);
-                if (id.startsWith("z")) {
-                    System.out.println();
-                }
-            }            
         }
     }
     
@@ -227,8 +176,7 @@ public class Puzzle {
     }
     
     long calc(long x, long y) {
-        long z = x + y;
-        System.out.printf("%d + %d = ", x, y);
+        //System.out.printf("%d + %d = ", x, y);
         
         for (int i = 0; i < 45; i++) {
             ((Const)(nodes.get("x" + key(i)))).value = (x & 1) == 1;
@@ -240,7 +188,7 @@ public class Puzzle {
         
         long r = result();
         
-        System.out.println(r + " (should be: " + z + ")");
+        //System.out.println(r);
         
         return r;
     }
@@ -266,38 +214,27 @@ public class Puzzle {
         }
     }
 
-    long test() {
-        long err = 0;
-        
-        for (int i = 0; i < 100; i++) {
-            long j = rnd.nextLong(1l << 45);
-            long k = rnd.nextLong(1l << 45);
+    void ops(String id, HashSet<String> result, int depth) {
+        if (depth == 0) {
+            return;
+        }
 
-            err = err | ((j + k) ^ calc(j, k));
+        result.add(id);
+        
+        Node n = nodes.get(id);
+        
+        if (n instanceof And a) {
+            deps(a.left, result, depth - 1);
+            deps(a.right, result, depth - 1);
+        } else if (n instanceof Or o) {
+            deps(o.left, result, depth - 1);
+            deps(o.right, result, depth - 1);
+        } else if (n instanceof Xor x) {
+            deps(x.left, result, depth - 1);
+            deps(x.right, result, depth - 1);
+        } else if (n instanceof Const c) {
+            result.add(c.id);
         }
-        
-        return err;
-    }
-    
-    void recurse(int depth, String s) {
-        if(depth == 0) {
-            System.out.println(s);
-            
-            for (int i = 0; i < 1000; i++) {
-                long j = rnd.nextLong(1l << 45);
-                long k = rnd.nextLong(1l << 45);
-                
-                long l = calc(j, k);
-                if (l != j + k) {
-                    return;
-                }
-            }
-            
-            System.out.println("Yes!");
-            System.exit(1);
-        }
-        
-        
     }
     
     void solve(String path) throws IOException {
@@ -319,25 +256,17 @@ public class Puzzle {
         long j = result();
         
         System.out.println("Part 1: " + j);
-        long tt = test();
         
-        //System.out.println("Errors: " + Long.toBinaryString(tt) + " " + Long.numberOfTrailingZeros(tt));
-        //System.exit(1);
+        HashSet<String> cands = new HashSet();
         
-        HashSet<String> seen = new HashSet();
         for (int i = 1; i < 46; i++) {
             String t = String.format("z%02d", i);
-            nodes.get(t).dump(seen);
-            //HashSet<String> h = new HashSet();
-            //deps(t, h, 4);
+            HashSet<String> h = new HashSet();
+            deps(t, h, 4);
             //System.out.println(t + " depends on " + h);
-            //System.out.println(t + " = " + nodes.get(t).toString(2));
-            //if (h.size() != 4) { 
-//                int k = Integer.parseInt(u.substring(1));
-  //             if (k > i) {
-            //        System.out.println("*** " + t + " is wrong!");
-                //}
-            //}
+            if (h.size() != 4) {
+                System.out.println("*** Error: " + t + " = " + nodes.get(t).toString(2));
+            }
         }
         /*
         for (int i = 0; i < 45; i++) {
@@ -357,12 +286,20 @@ public class Puzzle {
             }
         }
         */
+
+        System.out.print('>');
+        String ss = System.console().readLine();
+        while (ss.length() != 0) {
+            System.out.println(ss + " = " + nodes.get(ss).toString(2));
+            System.out.print('>');
+            ss = System.console().readLine();
+        }
         
     }
     
     
     public static void main(String[] args) throws IOException {
-        new Puzzle().solve(args[0]);
+        new Puzzle2().solve(args[0]);
     }
     
 }

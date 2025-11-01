@@ -1,0 +1,265 @@
+bdk = x00 & y00
+rsq = y01 ^ x01
+z01 = bdk ^ rsq
+
+jnh = rsq & bdk
+qkj = x01 & y01
+spt = jnh | qkj
+vjn = y02 ^ x02
+z02 = spt ^ vjn
+
+mtq = y03 ^ x03
+gms = spt & vjn
+cpf = y02 & x02
+tkj = gms | cpf
+z03 = mtq ^ tkj
+
+wfr = x04 ^ y04
+fgp = mtq & tkj
+qkp = y03 & x03
+fnv = fgp | qkp
+z04 = wfr ^ fnv
+
+sjc = wfr & fnv
+jhb = x04 & y04
+mch = sjc | jhb
+jbk = x05 ^ y05
+z05 = mch ^ jbk
+
+tcw = mch & jbk
+gvh = y05 & x05
+wjq = tcw | gvh
+thj = y06 ^ x06
+z06 = wjq ^ thj
+
+pmd = x07 ^ y07
+gjj = wjq & thj
+dsw = x06 & y06
+tqd = gjj | dsw
+z07 = pmd ^ tqd
+
+tbw = y08 ^ x08
+bdf = tqd & pmd
+dgf = y07 & x07
+dsq = bdf | dgf
+z08 = tbw ^ dsq
+
+sqm = x09 ^ y09
+nbj = x08 & y08
+tqv = dsq & tbw
+pwv = nbj | tqv
+z09 = sqm ^ pwv
+
+kqj = pwv & sqm
+bcs = x09 & y09
+ddg = kqj | bcs
+tck = x10 ^ y10
+z10 = ddg ^ tck
+
+gkb = y11 ^ x11
+cdj = tck & ddg
+bqd = y10 & x10
+pjh = cdj | bqd
+z11 = gkb ^ pjh
+
+hbd = gkb & pjh
+cst = x11 & y11
+cgh = hbd | cst
+tqw = y12 ^ x12
+z12 = cgh ^ tqw
+
+shm = y13 ^ x13
+fdg = y12 & x12
+mpw = tqw & cgh
+njv = fdg | mpw
+z13 = shm ^ njv
+
+djk = y14 ^ x14
+hrk = njv & shm
+rnb = x13 & y13
+pwm = hrk | rnb
+z14 = djk ^ pwm
+
+jtv = y15 ^ x15
+wbg = y14 & x14
+hwg = pwm & djk
+nsc = wbg | hwg
+z15 = jtv ^ nsc
+
+z16 = y16 & x16
+
+vmr = y16 ^ x16
+cdn = jtv & nsc
+qdr = y15 & x15
+bnc = cdn | qdr
+hmk = vmr ^ bnc
+ndj = bnc & vmr
+fmr = hmk | ndj
+vtd = y17 ^ x17
+z17 = fmr ^ vtd
+
+mvn = x18 ^ y18
+jkg = fmr & vtd
+kgb = x17 & y17
+wjt = jkg | kgb
+z18 = mvn ^ wjt
+
+gdq = x19 ^ y19
+nrf = mvn & wjt
+jkk = y18 & x18
+chf = nrf | jkk
+z19 = gdq ^ chf
+
+pns = x20 ^ y20
+qgq = y19 & x19
+qpp = chf & gdq
+tsc = qgq | qpp
+z20 = pns & tsc
+
+krw = x21 ^ y21
+fhp = tsc ^ pns
+rwm = x20 & y20
+vnk = fhp | rwm
+z21 = krw ^ vnk
+
+prd = x22 ^ y22
+ncf = x21 & y21
+vcj = krw & vnk
+ggg = ncf | vcj
+z22 = prd ^ ggg
+
+jcw = ggg & prd
+wnk = y22 & x22
+rnq = jcw | wnk
+hvv = y23 ^ x23
+z23 = rnq ^ hvv
+
+cmk = hvv & rnq
+fhn = x23 & y23
+jbj = cmk | fhn
+rkg = x24 ^ y24
+z24 = jbj ^ rkg
+
+dnv = jbj & rkg
+pbd = y24 & x24
+mgm = dnv | pbd
+cfr = x25 ^ y25
+z25 = mgm ^ cfr
+
+qwr = y26 ^ x26
+trg = y25 & x25
+kkp = mgm & cfr
+pbf = trg | kkp
+z26 = qwr ^ pbf
+
+rvf = x27 & y27
+ttw = y26 & x26
+ggw = pbf & qwr
+dkb = ttw | ggw
+z27 = rvf ^ dkb
+
+dtn = y28 ^ x28
+tpc = y27 ^ x27
+rmv = dkb & rvf
+ntn = tpc | rmv
+z28 = dtn ^ ntn
+
+scf = y29 ^ x29
+fnj = x28 & y28
+wsm = ntn & dtn
+ksv = fnj | wsm
+z29 = scf ^ ksv
+
+pgp = x29 & y29
+mfv = scf & ksv
+tmq = pgp | mfv
+fmg = y30 ^ x30
+z30 = tmq ^ fmg
+
+hbc = y31 ^ x31
+ttv = x30 & y30
+mbp = tmq & fmg
+hnr = ttv | mbp
+z31 = hbc ^ hnr
+
+hhc = x32 ^ y32
+qvp = hbc & hnr
+dhq = x31 & y31
+knm = qvp | dhq
+z32 = hhc ^ knm
+
+wkw = x33 & y33
+bmh = x32 & y32
+stm = hhc & knm
+rfd = bmh | stm
+smf = x33 ^ y33
+jgr = rfd & smf
+z33 = wkw | jgr
+
+fcd = smf ^ rfd
+mgc = x34 ^ y34
+z34 = fcd ^ mgc
+
+qrh = x35 ^ y35
+ccs = x34 & y34
+qck = fcd & mgc
+bjg = ccs | qck
+z35 = qrh ^ bjg
+
+fjg = x35 & y35
+qmw = bjg & qrh
+rtc = fjg | qmw
+rhc = x36 ^ y36
+z36 = rtc ^ rhc
+
+gvf = x37 ^ y37
+vvd = rtc & rhc
+dqh = y36 & x36
+cqv = vvd | dqh
+z37 = gvf ^ cqv
+
+dvq = cqv & gvf
+ssp = y37 & x37
+rft = dvq | ssp
+tnp = x38 ^ y38
+z38 = rft ^ tnp
+
+sfs = x38 & y38
+fpf = tnp & rft
+wgr = sfs | fpf
+bwj = y39 ^ x39
+z39 = wgr ^ bwj
+
+chr = x39 & y39
+nps = wgr & bwj
+svt = chr | nps
+grr = x40 ^ y40
+z40 = svt ^ grr
+
+nmp = y40 & x40
+jjg = grr & svt
+jct = nmp | jjg
+hmm = y41 ^ x41
+z41 = jct ^ hmm
+
+gkk = jct & hmm
+njd = y41 & x41
+hdc = gkk | njd
+kbt = y42 ^ x42
+z42 = hdc ^ kbt
+
+nmd = y42 & x42
+wdk = hdc & kbt
+vcd = nmd | wdk
+vbv = y43 ^ x43
+z43 = vcd ^ vbv
+
+wcj = y44 ^ x44
+ftg = y43 & x43
+tvw = vbv & vcd
+fnw = ftg | tvw
+z44 = wcj ^ fnw
+
+kvm = fnw & wcj
+svd = y44 & x44
+z45 = kvm | svd
