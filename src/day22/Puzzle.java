@@ -3,7 +3,6 @@ package day22;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,10 +11,10 @@ import java.util.List;
  * Day 22 "Monkey Market".
  */
 public class Puzzle {
-    
-    ArrayList<HashMap<String, Long>> data = new ArrayList();
 
-    long calc(long secret, int rounds, HashMap<String, Long> map) {
+    long calc(long secret, int rounds, HashMap<String, Long> data) {
+        HashSet<String> seen = new HashSet();
+        
         long oldPrice = secret % 10;
 
         String seq = "";
@@ -32,11 +31,13 @@ public class Puzzle {
             
             seq = seq + String.format("%2d ", diff);
             
-            if (seq.length() == 12) {                    // Minimum 4 prices
-                if (!map.containsKey(seq)) {             // 1st occurence only
-                    map.put(seq, newPrice);
+            if (i >= 3) {                               // Minimum 4 prices
+                if (!seen.contains(seq)) {              // 1st occurence only
+                    seen.add(seq);
+                    data.put(seq, data.getOrDefault(seq, 0L) + newPrice); // Add
                 }
-                seq = seq.substring(3);                  // Cut off oldest price
+                
+                seq = seq.substring(3);                 // Cut off oldest price
             }
 
             oldPrice = newPrice;
@@ -49,35 +50,27 @@ public class Puzzle {
         List<String> lines = Files.readAllLines(Path.of(path));
 
         long part1 = 0;
+        HashMap<String, Long> data = new HashMap();
 
-        HashSet<String> keys = new HashSet();
         for (String s: lines) {
-            HashMap<String, Long> map = new HashMap();
-            long secret = calc(Long.parseLong(s), 2000, map);
+            long secret = calc(Long.parseLong(s), 2000, data);
             System.out.print('.');
             // System.out.println(s + " -> " + secret);
             part1 += secret;
-            
-            data.add(map);              // Store whole map for later
-            keys.addAll(map.keySet());  // Store all keys for later
         }
         
         System.out.println();
         System.out.println();
-        System.out.println("Total sequences: " + keys.size());
+        System.out.println("Total sequences: " + data.size());
         System.out.println();
         
         long part2 = 0;
         String optSeq = "";
         
-        for (String k: keys) {          // Find best sequence of price changes
-            long total = 0;
+        for (String k: data.keySet()) {   // Find best sequence of price changes
+            long total = data.get(k);
             
-            for (HashMap<String, Long> map: data) {
-                total += map.getOrDefault(k, 0l);
-            }
-            
-            if (total > part2) {        // If total price is better, accept it
+            if (total > part2) {          // If total price is better, accept it
                 part2 = total;
                 optSeq = k;
             }
