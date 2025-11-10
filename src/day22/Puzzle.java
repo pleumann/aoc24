@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package day22;
 
 import java.io.IOException;
@@ -13,37 +9,37 @@ import java.util.HashSet;
 import java.util.List;
 
 /**
- *
- * @author joerg
+ * Day 22 "Monkey Market".
  */
 public class Puzzle {
     
     ArrayList<HashMap<String, Long>> data = new ArrayList();
 
     long calc(long secret, int rounds, HashMap<String, Long> map) {
-        long oldOnes = secret % 10; // Long.bitCount(secret);
+        long oldPrice = secret % 10;
 
-        String recent = "";
+        String seq = "";
         
         for (int i = 0; i < rounds; i++) {
-            secret = secret ^ (secret << 6) % 16777216;
-            secret = secret ^ (secret >> 5) % 16777216;
-            secret = secret ^ (secret << 11) % 16777216;
-            long newOnes = secret % 10; // Long.bitCount(secret);
-            long diff = newOnes - oldOnes;
-            //System.out.printf("  %10d %2d %2d\n", secret, newOnes, diff);
+            // Part 1 is just binary math
+            secret = secret ^ (secret <<  6) % 16777216; // *64
+            secret = secret ^ (secret >>  5) % 16777216; // :32
+            secret = secret ^ (secret << 11) % 16777216; // *2048
             
-            recent = recent + String.format("%2d ", diff);
+            // Part 2 is tracking prices
+            long newPrice = secret % 10;                 // "ones digit"
+            long diff = newPrice - oldPrice;
             
-            if (recent.length() == 12) {
-                //long j = map.getOrDefault(recent, 0l);
-                if (!map.containsKey(recent)) {
-                    map.put(recent, newOnes);
+            seq = seq + String.format("%2d ", diff);
+            
+            if (seq.length() == 12) {                    // Minimum 4 prices
+                if (!map.containsKey(seq)) {             // 1st occurence only
+                    map.put(seq, newPrice);
                 }
-                recent = recent.substring(3);
+                seq = seq.substring(3);                  // Cut off oldest price
             }
 
-            oldOnes = newOnes;
+            oldPrice = newPrice;
         }
         
         return secret;
@@ -53,42 +49,50 @@ public class Puzzle {
         List<String> lines = Files.readAllLines(Path.of(path));
 
         long part1 = 0;
-        long part2 = 0;
 
         HashSet<String> keys = new HashSet();
         for (String s: lines) {
             HashMap<String, Long> map = new HashMap();
             long secret = calc(Long.parseLong(s), 2000, map);
-            data.add(map);
-            keys.addAll(map.keySet());
-
-            System.out.println(s + " -> " + secret);
+            System.out.print('.');
+            // System.out.println(s + " -> " + secret);
             part1 += secret;
+            
+            data.add(map);              // Store whole map for later
+            keys.addAll(map.keySet());  // Store all keys for later
         }
         
-        System.out.println("Total keys: " + keys.size());
+        System.out.println();
+        System.out.println();
+        System.out.println("Total sequences: " + keys.size());
+        System.out.println();
         
-        long best = 0;
-        String kk = "";
+        long part2 = 0;
+        String optSeq = "";
         
-        for (String k: keys) {
+        for (String k: keys) {          // Find best sequence of price changes
             long total = 0;
             
             for (HashMap<String, Long> map: data) {
                 total += map.getOrDefault(k, 0l);
             }
             
-            if (total > best) {
-                best = total;
-                kk = k;
+            if (total > part2) {        // If total price is better, accept it
+                part2 = total;
+                optSeq = k;
             }
         }
         
-        System.out.println(part1);
-        System.out.println(best + " for " + kk);
+        System.out.printf("Part 1: %11d\n", part1);
+        System.out.printf("Part 2: %11d (for %s)\n", part2, optSeq.trim());
+        System.out.println();
     } 
 
     public static void main(String[] args) throws IOException {
+        System.out.println();
+        System.out.println("*** AoC 2024.22 Monkey Market ***");
+        System.out.println();
+        
         new Puzzle().solve(args[0]);
     }
     
