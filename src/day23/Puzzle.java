@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package day23;
 
 import java.io.BufferedReader;
@@ -11,73 +7,77 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- *
- * @author joerg
+ * Day 23 "LAN Party", find various cliques in a graph.
  */
 public class Puzzle {
 
+    /**
+     * Holds our graph as a mapping of nodes names to names of neighbor nodes.
+     */
     Map<String, Set<String>> graph;
 
-    ArrayList<String> nodes = new ArrayList();
-    
     /**
-     * Rekursiver Bron-Kerbosch Algorithmus
+     * The largest maximal clique.
      */
-    private static void bronKerbosch(Set<String> R, Set<String> P, Set<String> X,
-                                     Map<String, Set<String>> graph, 
-                                     List<Set<String>> cliques) {
+    Set<String> topClique = new HashSet();
+
+    /**
+     * Finds all maximal cliques via Bron-Kerbosch, which is a recursive
+     * backtracking algorithm that is straightforward to implement.
+     * 
+     * R is the current clique we're looking at
+     * P is the list of candidates to add to the clique
+     * X is the list of nodes we've already investigated
+     * 
+     * See https://en.wikipedia.org/wiki/Bron–Kerbosch_algorithm for details.
+     */
+    private void bronKerbosch(Set<String> R, Set<String> P, Set<String> X) {
+        
+        // Recursion anchor
         if (P.isEmpty() && X.isEmpty()) {
-            // Maximale Clique gefunden
-            cliques.add(new HashSet<>(R));
+            System.out.print('.');
+            
+            if (R.size() > topClique.size()) {
+                // Found new largest maximal clique
+                topClique = new HashSet(R);
+            }
+            
             return;
         }
         
-        // Kopie erstellen, da wir während Iteration modifizieren
-        Set<String> pCopy = new HashSet<>(P);
+        // Create a copy a P because we modify the original
+        Set<String> pCopy = new HashSet(P);
         
-        for (String v : pCopy) {
+        for (String v: pCopy) {
             Set<String> neighbors = graph.get(v);
             
-            // R ∪ {v}
-            Set<String> newR = new HashSet<>(R);
+            // Calculate R ∪ {v}
+            Set<String> newR = new HashSet(R);
             newR.add(v);
             
-            // P ∩ N(v)
-            Set<String> newP = new HashSet<>(P);
+            // Calculate P ∩ N(v)
+            Set<String> newP = new HashSet(P);
             newP.retainAll(neighbors);
             
-            // X ∩ N(v)
-            Set<String> newX = new HashSet<>(X);
+            // Calculate X ∩ N(v)
+            Set<String> newX = new HashSet(X);
             newX.retainAll(neighbors);
             
-            bronKerbosch(newR, newP, newX, graph, cliques);
+            bronKerbosch(newR, newP, newX);
             
             P.remove(v);
             X.add(v);
         }
     }    
-
-    /**
-     * Findet alle maximalen Cliquen in einem Graphen
-     * @param graph Adjazenzliste als Map
-     * @return Liste aller maximalen Cliquen
-     */
-    public static List<Set<String>> findAllCliques(Map<String, Set<String>> graph) {
-        List<Set<String>> cliques = new ArrayList<>();
-        Set<String> R = new HashSet<>();  // aktuelle Clique
-        Set<String> P = new HashSet<>(graph.keySet());  // Kandidaten
-        Set<String> X = new HashSet<>();  // bereits bearbeitet
-        
-        bronKerbosch(R, P, X, graph, cliques);
-        return cliques;
-    }
     
     private void solve(BufferedReader br) throws IOException {
+        /*
+         * First we construct the graph from the input file.
+         */
         graph = new HashMap();
         
         String s = br.readLine();
@@ -87,12 +87,10 @@ public class Puzzle {
 
             if (!graph.containsKey(left)) {
                 graph.put(left, new HashSet());
-                nodes.add(left);
             }
 
             if (!graph.containsKey(right)) {
                 graph.put(right, new HashSet());
-                nodes.add(right);
             }
 
             graph.get(left).add(right);
@@ -101,8 +99,12 @@ public class Puzzle {
             s = br.readLine();
         }
         
-        System.out.printf("%d nodes\n", nodes.size());
+        System.out.printf("%d nodes.\n\n", graph.size());
         
+        /*
+         * Solve part 1 using three nested loops.
+         */
+        ArrayList<String> nodes = new ArrayList(graph.keySet());
         int part1 = 0;
         
         for (int i = 0; i < nodes.size(); i++) {
@@ -113,39 +115,42 @@ public class Puzzle {
                     String z = nodes.get(k);
                     if (graph.get(x).contains(y) && graph.get(y).contains(z) && graph.get(z).contains(x)) {
                         if (x.startsWith("t") || y.startsWith("t") || z.startsWith("t")) {
-                            System.out.println(x + "-" + y + "-" + z);
+                            System.out.print('.');
                             part1++;
                         }
                     }
                 }
             }
         }
-       
+
+        System.out.println();
+        System.out.println();
+        System.out.println("Part 1: " + part1);
+        System.out.println();
+
+        /*
+         * Solve part 2 using Bron-Kerbosch.
+         */
+        bronKerbosch(new HashSet(), new HashSet(graph.keySet()), new HashSet());
         
-        System.out.println(part1);
-        
-        List<Set<String>> list = findAllCliques(graph);
-        
-        Set<String> max = new HashSet();
-        
-        for (Set<String> clique: list) {
-            if (clique.size() > max.size()) {
-                max = clique;
-            }
-        }
-        
-        System.out.println("Maximale Clique: " + max);
-       
-        String[] sa = max.toArray(new String[max.size()]);
-        Arrays.sort(sa);
-        System.out.print(sa[0]);
-        for (int i = 1; i < sa.length; i++) {
-            System.out.print("," + sa[i]);
-        }
-        
+        String[] names = topClique.toArray(new String[topClique.size()]);
+        Arrays.sort(names);
+        String part2 = String.join(",", names);
+                
+        System.out.println();
+        System.out.println();
+        System.out.println("Part 2: " + part2);
+        System.out.println();
     }
 
+    /**
+     * Canonical entry point.
+     */
     public static void main(String [] args) throws IOException {
+        System.out.println();
+        System.out.println("*** AoC 2024.23 LAN Party ***");
+        System.out.println();
+
         new Puzzle().solve(new BufferedReader(new FileReader(args[0])));
     }
     
