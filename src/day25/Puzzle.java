@@ -1,35 +1,73 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package day25;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
- *
- * @author joerg
+ * Day 25 "Code Chronicle"
  */
-
-class Schematic {
-    int[] heights = new int[5];
-
-    public Schematic() {
-        Arrays.fill(heights, 0);
-    }
-}
-
 public class Puzzle {
 
-    private static List<Schematic> locks = new ArrayList<>();
-    private static List<Schematic> keys = new ArrayList<>();
+    /**
+     * Represents a lock or key.
+     */
+    class Schematic {
+        int[] heights = new int[5];
+    }
 
-    public static void load(String path) throws IOException {
+    /**
+     * Our lists of all locks and keys.
+     */
+    private List<Schematic> locks = new ArrayList<>();
+    private List<Schematic> keys = new ArrayList<>();
+
+    /**
+     * Checks whether a given combination of lock and key fits.
+     */
+    public boolean fits(Schematic lock, Schematic key) {
+        for (int i = 0; i < 5; i++) {
+            if (lock.heights[i] + key.heights[i] > 5) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Shows a lock on the screen.
+     */
+    public void showLock(Schematic lock) {
+        for (int i = 0; i < 5; i++) {
+            // Position the cursor at (column 20, row 10 + i)
+            System.out.printf("\u001B[%d;%dH", 3 + i, 17);
+
+            // Print the lock representation
+            System.out.print("#".repeat(1 + lock.heights[i]));
+            System.out.print(" ".repeat(7 - lock.heights[i]));
+        }
+    }
+
+    /**
+     * Shows a key on the screen.
+     */
+    public void showKey(Schematic key) {
+        for (int i = 0; i < 5; i++) {
+            System.out.printf("\u001B[%d;%dH", 3 + i, 27);
+
+            // Print the key representation
+            System.out.print(" ".repeat(7 - key.heights[i]));
+            System.out.print("#".repeat(1 + key.heights[i]));
+        }
+    }
+
+    /**
+     * Loads the schematics from the  given input file and solves the puzzle.
+     */
+    public void solve(String path) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(path));
 
         int lockCount = 0;
@@ -67,49 +105,7 @@ public class Puzzle {
         }
 
         reader.close();
-    }
 
-    public static boolean fits(Schematic lock, Schematic key) {
-        for (int i = 0; i < 5; i++) {
-            if (lock.heights[i] + key.heights[i] > 5) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public static void showLock(Schematic lock) {
-        for (int i = 0; i < 5; i++) {
-            // Position the cursor at (column 20, row 10 + i)
-            System.out.printf("\u001B[%d;%dH", 3 + i, 17);
-
-            // Print the lock representation
-            for (int j = 0; j <= lock.heights[i]; j++) {
-                System.out.print("#");
-            }
-
-            // Fill the rest with spaces for alignment
-            for (int j = lock.heights[i] + 1; j < 8; j++) {
-                System.out.print(" ");
-            }
-        }
-    }
-
-    public static void showKey(Schematic key) {
-        for (int i = 0; i < 5; i++) {
-            System.out.printf("\u001B[%d;%dH", 3 + i, 27);
-
-            for (int j = key.heights[i] + 1; j < 8; j++) {
-                System.out.print(" ");
-            }
-
-            for (int j = 0; j <= key.heights[i]; j++) {
-                System.out.print("#");
-            }
-        }
-    }
-
-    public static int solve() {
         int result = 0;
 
         for (Schematic lock : locks) {
@@ -122,13 +118,15 @@ public class Puzzle {
                 if (fits(lock, key)) {
                     result++;
                     countForLock++;
+                    System.out.printf("\u001B[7;1HPart 1: %4d\n", result);
                 }
             }
         }
-
-        return result;
     }
-    
+
+    /**
+     * Provides the canonical entry point.
+     */
     public static void main(String[] args) throws IOException {
         System.out.print("\u001B[2J");
         System.out.print("\u001B[H");
@@ -136,10 +134,8 @@ public class Puzzle {
         System.out.println("*** AoC 2024.25 Code Chronicle ***");
         System.out.println("\nKeys:\nLocks:\n\n\nPart 1:");
 
-        load(args[0]);
-        int part1 = solve();
+        new Puzzle().solve(args[0]);
 
-        System.out.printf("\u001B[7;1HPart 1: %4d\n", part1);
         System.out.println();
     }
     
